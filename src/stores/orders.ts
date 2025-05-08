@@ -22,6 +22,7 @@ export interface Order {
   status: 'pending' | 'accepted' | 'declined'
   totalAmount: number
   userId: string
+  customerName: string
   createdAt: number
   items: OrderItem[]
 }

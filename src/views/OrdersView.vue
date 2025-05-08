@@ -19,6 +19,7 @@
           <thead>
             <tr class="bg-gray-200">
               <th class="border-2 border-gray-500 p-2 text-center">Order ID</th>
+              <th class="border-2 border-gray-500 p-2 text-center">Customer Name</th>
               <th class="border-2 border-gray-500 p-2 text-center">Type</th>
               <th class="border-2 border-gray-500 p-2 text-center">Order Date and Time</th>
               <th class="border-2 border-gray-500 p-2 text-center">Status</th>
@@ -29,6 +30,7 @@
           <tbody>
             <tr v-for="order in filteredOrders" :key="order.orderId" class="hover:bg-gray-100">
               <td class="border-2 border-gray-500 p-2 text-center">#{{ order.orderId }}</td>
+              <td class="border-2 border-gray-500 p-2 text-center">{{ order.customerName }}</td>
               <td class="border-2 border-gray-500 p-2 text-center">{{ order.type }}</td>
               <td class="border-2 border-gray-500 p-2 text-center">{{ formatDate(order.createdAt) }}</td>
               <td class="border-2 border-gray-500 p-2 text-center">

@@ -17,6 +17,9 @@
             <p class="font-bold">Order ID: <span class="font-normal">#{{ order.orderId }}</span></p>
           </div>
           <div class="border-2 border-gray-500 p-2">
+            <p class="font-bold">Customer Name: <span class="font-normal">{{ order.customerName }}</span></p>
+          </div>
+          <div class="border-2 border-gray-500 p-2">
             <p class="font-bold">Date: <span class="font-normal">{{ formatDate(order.createdAt) }}</span></p>
           </div>
           <div class="border-2 border-gray-500 p-2">

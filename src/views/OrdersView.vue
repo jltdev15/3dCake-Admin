@@ -81,6 +81,8 @@ import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useOrderStore } from '../stores/orders'
 import type { Order } from '../stores/orders'
+import { ref as dbRef, set } from 'firebase/database'
+import { database } from '../firebase/config'
 
 const orderStore = useOrderStore()
 const searchQuery = ref('')
@@ -130,9 +132,34 @@ const getStatusClass = (status: string) => {
 // Function to update order status
 const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
   try {
+    // First update the order status
     await orderStore.updateOrder(orderId, { status: newStatus })
+    
+    // Get the order details to access userId
+    const order = orders.value.find(o => o.orderId === orderId)
+    if (!order) {
+      throw new Error('Order not found')
+    }
+
+    try {
+      // Create notification entry in Firebase
+      const notificationRef = dbRef(database, `users/${order.userId}/ordernotification/${orderId}`)
+      await set(notificationRef, {
+        orderId,
+        status: newStatus,
+        timestamp: Date.now(),
+        message: `Your order #${orderId} has been ${newStatus}`,
+        read: false
+      })
+    } catch (notificationError: any) {
+      // Log the notification error but don't fail the whole operation
+      console.warn('Failed to create notification:', notificationError)
+      // You might want to show a toast or notification to the admin
+      // that the order was updated but notification failed
+    }
   } catch (e) {
     console.error('Failed to update order status:', e)
+    // You might want to show an error message to the user here
   }
 }
 </script>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base cake layer -->
+  <ellipse cx="100" cy="160" rx="70" ry="20" fill="#D4AF37" />
+  
+  <!-- Middle cake layer -->
+  <path d="M40 160 L40 120 C40 110 160 110 160 120 L160 160" fill="#F5DEB3" />
+  <ellipse cx="100" cy="120" rx="60" ry="15" fill="#F5DEB3" />
+  
+  <!-- Top cake layer -->
+  <path d="M50 120 L50 90 C50 80 150 80 150 90 L150 120" fill="#FFD700" />
+  <ellipse cx="100" cy="90" rx="50" ry="12" fill="#FFD700" />
+  
+  <!-- Dripping chocolate -->
+  <path d="M60 90 L55 120 M70 90 L68 130 M80 90 L83 125 M90 90 L92 135 M100 90 L98 140 M110 90 L115 130 M120 90 L125 125 M130 90 L128 135 M140 90 L138 120" stroke="#8B4513" stroke-width="3" />
+  
+  <!-- Decorations -->
+  <circle cx="70" cy="85" r="5" fill="#B22222" /> <!-- Cherry -->
+  <circle cx="90" cy="82" r="4" fill="#FFD700" /> <!-- Gold ball -->
+  <circle cx="110" cy="83" r="4" fill="#C0C0C0" /> <!-- Silver ball -->
+  <circle cx="130" cy="85" r="5" fill="#B22222" /> <!-- Cherry -->
+  
+  <!-- Happy Birthday topper -->
+  <g transform="translate(100, 60) rotate(-10)">
+    <rect x="-40" y="-15" width="80" height="30" rx="2" fill="none" stroke="#FFD700" stroke-width="1" />
+    <text x="0" y="5" font-family="Arial" font-size="10" fill="#FFD700" text-anchor="middle">Happy</text>
+    <text x="0" y="15" font-family="Arial" font-size="10" fill="#FFD700" text-anchor="middle">Birthday</text>
+  </g>
+</svg>

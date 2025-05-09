@@ -270,6 +270,8 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { ref as dbRef, onValue, off, update } from 'firebase/database'
+import { database } from '../firebase/config'
 
 const route = useRoute()
 const router = useRouter()
@@ -277,59 +279,89 @@ const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 const notificationDropdownOpen = ref(false)
 
-// Sample notifications data
-const notifications = ref([
-  { id: 1, message: 'New order #1234 received', time: '5 minutes ago', read: false, orderId: '1234', type: 'order' },
-  { id: 2, message: 'Payment confirmed for order #1230', time: '2 hours ago', read: false, orderId: '1230', type: 'order' },
-  { id: 3, message: 'Customer feedback received', time: '1 day ago', read: false, orderId: '1001', type: 'order' },
-  { id: 4, message: 'System update completed', time: '3 days ago', read: true, orderId: null, type: 'system' }
-])
+// Notification state
+const notifications = ref<any[]>([])
+const unreadNotificationsCount = ref(0)
 
-// Toggle notification dropdown
-const toggleNotificationDropdown = (event: MouseEvent) => {
-  event.stopPropagation() // Prevent the click from being detected by the document click handler
-  notificationDropdownOpen.value = !notificationDropdownOpen.value
+// Function to format timestamp to relative time
+const formatTime = (timestamp: number) => {
+  const now = Date.now()
+  const diff = now - timestamp
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 0) return `${days}d ago`
+  if (hours > 0) return `${hours}h ago`
+  if (minutes > 0) return `${minutes}m ago`
+  return 'Just now'
 }
 
-// Close notification dropdown when clicking outside
-const closeNotificationDropdown = (event: MouseEvent) => {
-  // Check if the click was outside the notification dropdown
-  const target = event.target as HTMLElement
-  if (!target.closest('.notification-dropdown-container')) {
-    notificationDropdownOpen.value = false
-  }
-}
+// Function to fetch notifications
+const fetchNotifications = () => {
+  const notificationsRef = dbRef(database, 'admin_notifications')
+  
+  onValue(notificationsRef, (snapshot) => {
+    const data = snapshot.val()
+    if (data) {
+      // Convert object to array and sort by createdAt
+      const notificationsArray = Object.entries(data).map(([id, notification]: [string, any]) => ({
+        id,
+        ...notification,
+        time: formatTime(notification.createdAt)
+      })).sort((a, b) => b.createdAt - a.createdAt)
 
-// Add event listener for click outside
-onMounted(() => {
-  document.addEventListener('click', closeNotificationDropdown)
-})
-
-// Remove event listener when component is unmounted
-onUnmounted(() => {
-  document.removeEventListener('click', closeNotificationDropdown)
-})
-
-// Mark all notifications as read
-const markAllAsRead = () => {
-  notifications.value.forEach(notification => {
-    notification.read = true
+      notifications.value = notificationsArray
+      unreadNotificationsCount.value = notificationsArray.filter(n => !n.read).length
+    } else {
+      notifications.value = []
+      unreadNotificationsCount.value = 0
+    }
   })
 }
 
-// Handle notification click
-const handleNotificationClick = (notification: any) => {
-  // Mark the notification as read
-  notification.read = true
+// Function to mark notification as read
+const markNotificationAsRead = async (notificationId: string) => {
+  try {
+    const notificationRef = dbRef(database, `admin_notifications/${notificationId}`)
+    await update(notificationRef, { read: true })
+  } catch (error) {
+    console.error('Error marking notification as read:', error)
+  }
+}
 
-  // Close the notification dropdown
-  notificationDropdownOpen.value = false
+// Function to mark all notifications as read
+const markAllAsRead = async () => {
+  try {
+    const updates: { [key: string]: boolean } = {}
+    notifications.value.forEach(notification => {
+      if (!notification.read) {
+        updates[`admin_notifications/${notification.id}/read`] = true
+      }
+    })
+    await update(dbRef(database), updates)
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error)
+  }
+}
 
-  // Redirect based on notification type
-  if (notification.type === 'order' && notification.orderId) {
-    // Navigate to the specific order detail page
+// Function to handle notification click
+const handleNotificationClick = async (notification: any) => {
+  if (!notification.read) {
+    await markNotificationAsRead(notification.id)
+  }
+  
+  // Navigate to the order detail page
+  if (notification.orderId) {
     router.push(`/orders/${notification.orderId}`)
   }
+  
+  notificationDropdownOpen.value = false
+}
+
+// Toggle notification dropdown
+const toggleNotificationDropdown = () => {
+  notificationDropdownOpen.value = !notificationDropdownOpen.value
 }
 
 // Toggle sidebar visibility on mobile
@@ -362,9 +394,15 @@ const pageTitle = computed(() => {
   return 'Dashboard'
 })
 
-// Compute the number of unread notifications
-const unreadNotificationsCount = computed(() => {
-  return notifications.value.filter(notification => !notification.read).length
+// Setup and cleanup
+onMounted(() => {
+  fetchNotifications()
+})
+
+onUnmounted(() => {
+  // Cleanup Firebase listeners
+  const notificationsRef = dbRef(database, 'admin_notifications')
+  off(notificationsRef)
 })
 
 // Logout function

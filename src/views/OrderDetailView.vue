@@ -92,6 +92,8 @@ import { useRoute } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useOrderStore } from '../stores/orders'
 import type { Order } from '../stores/orders'
+import { ref as dbRef, set } from 'firebase/database'
+import { database } from '../firebase/config'
 
 const route = useRoute()
 const orderStore = useOrderStore()
@@ -129,10 +131,29 @@ const updateOrderStatus = async (newStatus: 'accepted' | 'declined') => {
   if (!order.value) return
   
   try {
+    // First update the order status
     await orderStore.updateOrder(order.value.orderId, { status: newStatus })
     order.value.status = newStatus
+
+    try {
+      // Create notification entry in Firebase
+      const notificationRef = dbRef(database, `users/${order.value.userId}/ordernotification/${order.value.orderId}`)
+      await set(notificationRef, {
+        orderId: order.value.orderId,
+        status: newStatus,
+        timestamp: Date.now(),
+        message: `Your order #${order.value.orderId} has been ${newStatus}`,
+        read: false
+      })
+    } catch (notificationError: any) {
+      // Log the notification error but don't fail the whole operation
+      console.warn('Failed to create notification:', notificationError)
+      // You might want to show a toast or notification to the admin
+      // that the order was updated but notification failed
+    }
   } catch (e) {
     console.error('Failed to update order status:', e)
+    // You might want to show an error message to the user here
   }
 }
 

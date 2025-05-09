@@ -244,11 +244,11 @@
                 </div>
               </div>
 
-              <div class="px-4 py-2 border-t-2 border-gray-500 bg-gray-200">
+              <!-- <div class="px-4 py-2 border-t-2 border-gray-500 bg-gray-200">
                 <a href="#" class="text-blue-500 font-bold block text-center">
                   View all notifications
                 </a>
-              </div>
+              </div> -->
             </div>
           </div>
           <span class="text-gray-800 font-bold mr-3 hidden sm:inline">Admin User</span>

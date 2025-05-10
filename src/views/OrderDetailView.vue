@@ -164,6 +164,7 @@ onMounted(async () => {
     const foundOrder = orders.value.find((o: Order) => o.orderId === orderId.value)
     if (foundOrder) {
       order.value = foundOrder
+      console.log(order.value)
     } else {
       console.error('Order not found')
     }

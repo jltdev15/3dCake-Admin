@@ -1,85 +1,126 @@
 <template>
   <DashboardLayout>
     <div>
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-center">Order #{{ orderId }}</h1>
-        <router-link to="/orders" class="bg-blue-500 text-white px-4 py-2">
+      <!-- Header Section -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-semibold text-gray-800">Order Details</h1>
+          <p class="mt-1 text-sm text-gray-600">View and manage order #{{ orderId }}</p>
+        </div>
+        <router-link 
+          to="/orders" 
+          class="inline-flex items-center px-4 py-2 mt-4 md:mt-0 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
           Back to Orders
         </router-link>
       </div>
 
       <!-- Order Details -->
-      <div v-if="order" class="border-2 border-gray-500 p-4 mb-6">
-        <h2 class="text-xl font-bold mb-4 bg-gray-200 p-2 border-2 border-gray-500">Order Information</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div class="border-2 border-gray-500 p-2">
-            <p class="font-bold">Order ID: <span class="font-normal">#{{ order.orderId }}</span></p>
-          </div>
-          <div class="border-2 border-gray-500 p-2">
-            <p class="font-bold">Customer Name: <span class="font-normal">{{ order.customerName }}</span></p>
-          </div>
-          <div class="border-2 border-gray-500 p-2">
-            <p class="font-bold">Date: <span class="font-normal">{{ formatDate(order.createdAt) }}</span></p>
-          </div>
-          <div class="border-2 border-gray-500 p-2">
-            <p class="font-bold">Type: <span class="font-normal">{{ order.type }}</span></p>
-          </div>
-          <div class="border-2 border-gray-500 p-2">
-            <p class="font-bold">Status:
-              <span :class="getStatusClass(order.status)">{{ order.status }}</span>
-            </p>
+      <div v-if="order" class="space-y-6">
+        <!-- Order Information Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Order Information</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-500">Order ID</p>
+                <p class="mt-1 text-lg font-semibold text-gray-900">#{{ order.orderId }}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-500">Customer Name</p>
+                <p class="mt-1 text-lg font-semibold text-gray-900">{{ order.customerName }}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-500">Date</p>
+                <p class="mt-1 text-lg font-semibold text-gray-900">{{ formatDate(order.createdAt) }}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-500">Type</p>
+                <p class="mt-1 text-lg font-semibold text-gray-900">{{ order.type }}</p>
+              </div>
+              <div class="bg-gray-50 rounded-lg p-4">
+                <p class="text-sm font-medium text-gray-500">Status</p>
+                <span :class="[
+                  'mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
+                  getStatusClass(order.status)
+                ]">
+                  {{ order.status }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <h2 class="text-xl font-bold mb-4 bg-gray-200 p-2 border-2 border-gray-500">Order Items</h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div v-for="item in order.items" :key="item.id" class="border-2 border-gray-500 p-4">
-            <div class="flex items-center space-x-4">
-              <img :src="item.imageUrl" :alt="item.name" class="w-24 h-24 object-cover rounded-lg">
-              <div class="flex-1">
-                <h3 class="font-bold text-lg">{{ item.name }}</h3>
-                <p class="text-gray-600">Cake ID: {{ item.cakeId }}</p>
-                <p class="text-gray-600">Size: {{ item.size || 'Standard' }}</p>
-                <div class="flex justify-between items-center mt-2">
-                  <div>
-                    <p class="text-gray-600">Quantity: {{ item.quantity }}</p>
-                    <p class="text-gray-600">Unit Price: ₱{{ item.unitPrice.toFixed(2) }}</p>
+        <!-- Order Items Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Order Items</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-for="item in order.items" :key="item.id" class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-start space-x-4">
+                  <img :src="item.imageUrl" :alt="item.name" class="w-24 h-24 object-cover rounded-lg shadow-sm">
+                  <div class="flex-1">
+                    <h3 class="font-medium text-gray-900">{{ item.name }}</h3>
+                    <div class="mt-2 space-y-1">
+                      <p class="text-sm text-gray-600">Cake ID: {{ item.cakeId }}</p>
+                      <p class="text-sm text-gray-600">Size: {{ item.size || 'Standard' }}</p>
+                      <p class="text-sm text-gray-600">Quantity: {{ item.quantity }}</p>
+                      <p class="text-sm text-gray-600">Unit Price: ₱{{ item.unitPrice.toFixed(2) }}</p>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-200">
+                      <p class="text-lg font-semibold text-gray-900">₱{{ item.totalPrice.toFixed(2) }}</p>
+                    </div>
                   </div>
-                  <p class="font-bold text-lg">₱{{ item.totalPrice.toFixed(2) }}</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="flex justify-end">
-          <div class="border-2 border-gray-500 p-4 bg-gray-100 w-full md:w-1/3">
-            <div class="flex justify-between font-bold text-lg border-t-2 border-gray-500 pt-2">
-              <span>Total Amount:</span>
-              <span>₱{{ order.totalAmount.toFixed(2) }}</span>
+        <!-- Order Summary Card -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-6">
+            <div class="flex justify-end">
+              <div class="w-full md:w-1/3">
+                <div class="bg-gray-50 rounded-lg p-4">
+                  <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-900">Total Amount</span>
+                    <span class="text-2xl font-semibold text-gray-900">₱{{ order.totalAmount.toFixed(2) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Order Actions -->
-      <div v-if="order?.status.toLowerCase() === 'pending'" class="border-2 border-gray-500 p-4 bg-gray-100">
-        <h2 class="text-xl font-bold mb-4">Actions</h2>
-        <div class="flex space-x-4">
-          <button 
-            @click="updateOrderStatus('accepted')"
-            class="bg-green-500 text-white px-4 py-2 font-bold hover:bg-green-600"
-          >
-            ACCEPT ORDER
-          </button>
-          <button 
-            @click="updateOrderStatus('declined')"
-            class="bg-red-500 text-white px-4 py-2 font-bold hover:bg-red-600"
-          >
-            DECLINE ORDER
-          </button>
+        <!-- Order Actions -->
+        <div v-if="order?.status.toLowerCase() === 'pending'" class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Actions</h2>
+            <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+              <button 
+                @click="updateOrderStatus('accepted')"
+                class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Accept Order
+              </button>
+              <button 
+                @click="updateOrderStatus('declined')"
+                class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Decline Order
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -116,13 +157,13 @@ const formatDate = (timestamp: number) => {
 const getStatusClass = (status: string) => {
   switch (status.toLowerCase()) {
     case 'pending':
-      return 'font-bold text-yellow-600'
+      return 'bg-yellow-100 text-yellow-800'
     case 'accepted':
-      return 'font-bold text-green-600'
+      return 'bg-green-100 text-green-800'
     case 'declined':
-      return 'font-bold text-red-600'
+      return 'bg-red-100 text-red-800'
     default:
-      return 'font-bold text-gray-600'
+      return 'bg-gray-100 text-gray-800'
   }
 }
 

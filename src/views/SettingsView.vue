@@ -2,48 +2,120 @@
   <DashboardLayout>
     <div>
       <!-- Settings Header -->
-      <h1 class="text-2xl font-bold mb-4 text-center">Profile Settings</h1>
+      <div class="mb-6">
+        <h1 class="text-2xl font-semibold text-gray-800">Profile Settings</h1>
+        <p class="mt-1 text-sm text-gray-600">Manage your account settings and preferences</p>
+      </div>
 
       <!-- Profile Section -->
-      <div class="border-2 border-gray-500 p-4 bg-gray-100">
-        <h2 class="text-xl font-bold mb-4 text-center">Profile Information</h2>
-        <p class="mb-6 text-center">Update your account's profile information and email address.</p>
-
-        <form @submit.prevent="saveProfile" class="space-y-6">
-  
-
-          <!-- Name -->
-          <div>
-            <label for="name" class="block font-bold mb-2">Name</label>
-            <input
-              type="text"
-              id="name"
-              v-model="profile.name"
-              class="w-full px-3 py-2 border-2 border-gray-500"
-            />
+      <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6">
+          <div class="mb-6">
+            <h2 class="text-lg font-medium text-gray-900">Profile Information</h2>
+            <p class="mt-1 text-sm text-gray-600">Update your account's profile information and email address.</p>
           </div>
 
-          <!-- Email -->
-          <div>
-            <label for="email" class="block font-bold mb-2">Email</label>
-            <input
-              type="email"
-              id="email"
-              v-model="profile.email"
-              class="w-full px-3 py-2 border-2 border-gray-500"
-            />
-          </div>
+          <form @submit.prevent="saveProfile" class="space-y-6">
+            <!-- Name -->
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  id="name"
+                  v-model="profile.name"
+                  class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                  placeholder="Enter your name"
+                />
+              </div>
+            </div>
 
-          <!-- Save Button -->
-          <div class="text-center">
-            <button
-              type="submit"
-              class="px-6 py-3 bg-blue-500 text-white font-bold"
-            >
-              SAVE
-            </button>
+            <!-- Email -->
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <div class="relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  id="email"
+                  v-model="profile.email"
+                  class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                  placeholder="Enter your email"
+                />
+              </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="flex justify-end">
+              <button
+                type="submit"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Additional Settings Sections -->
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Notification Settings -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h2>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-sm font-medium text-gray-700">Email Notifications</h3>
+                  <p class="text-sm text-gray-500">Receive email updates about your account</p>
+                </div>
+                <button class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-gray-200">
+                  <span class="translate-x-0 pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out">
+                    <span class="opacity-100 ease-in duration-200 absolute inset-0 flex h-full w-full items-center justify-center transition-opacity" aria-hidden="true">
+                      <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 12 12">
+                        <path d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
-        </form>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+          <div class="p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Security</h2>
+            <div class="space-y-4">
+              <button class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors duration-200">
+                <span>Change Password</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors duration-200">
+                <span>Two-Factor Authentication</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </DashboardLayout>

@@ -8,7 +8,8 @@ import {
   browserLocalPersistence,
   type User
 } from 'firebase/auth'
-import { auth } from '../firebase/config'
+import { auth, database } from '../firebase/config'
+import { ref as dbRef, set } from 'firebase/database'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -44,6 +45,17 @@ export const useAuthStore = defineStore('auth', () => {
       error.value = null
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       user.value = userCredential.user
+
+      // Save user data to Realtime Database
+      const userData = {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        name: "PSALM Cake Admin",
+        lastLogin: Date.now(),
+        status: 'active'
+      }
+
+      await set(dbRef(database, `users/${userCredential.user.uid}`), userData)
       return userCredential.user
     } catch (err: any) {
       error.value = err.message || 'Failed to login'

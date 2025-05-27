@@ -1,60 +1,159 @@
 <template>
   <DashboardLayout>
     <div class="flex flex-col min-h-[400px] h-[80dvh] md:h-[80dvh]">
+      <!-- Mobile Toggle Buttons -->
+      <div class="md:hidden flex w-full border-b border-gray-200">
+        <button 
+          @click="showConversationList = true" 
+          class="flex-1 py-2 text-center font-medium text-sm"
+          :class="showConversationList ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-500' : 'text-gray-500'"
+        >
+          Conversations
+          <span v-if="totalUnreadCount > 0" 
+                class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-500 text-white">
+            {{ totalUnreadCount }}
+          </span>
+        </button>
+        <button 
+          @click="showConversationList = false" 
+          class="flex-1 py-2 text-center font-medium text-sm"
+          :class="!showConversationList ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-500' : 'text-gray-500'"
+          :disabled="!selectedConversation"
+        >
+          {{ selectedConversation ? selectedConversation.name : 'Messages' }}
+        </button>
+      </div>
+
       <div class="flex-1 flex min-h-0">
         <!-- Conversations List -->
-        <div class="w-1/3 border-r border-gray-200 flex flex-col">
-          <div class="py-2 px-3 border-b border-gray-200 flex-shrink-0">
-            <h2 class="text-base font-semibold text-gray-800 flex items-center">
-              Messages
-              <!-- <span v-if="totalUnreadCount > 0" 
-                    class="ml-2 bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
-                {{ totalUnreadCount }}
-              </span> -->
-            </h2>
+        <div 
+          class="border-r border-gray-200 flex flex-col md:w-1/3 lg:w-1/4"
+          :class="{'w-full': showConversationList, 'hidden md:flex': !showConversationList}"
+        >
+          <div class="py-3 px-4 border-b border-gray-200 flex-shrink-0 bg-gray-50">
+            <h2 class="text-base font-semibold text-gray-800 mb-2">Messages</h2>
+            <!-- Search Input -->
+            <div class="relative">
+              <input 
+                type="text" 
+                v-model="searchQuery" 
+                placeholder="Search conversations..." 
+                class="w-full pl-9 pr-3 py-2 bg-white rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              <div class="absolute left-3 top-2.5 text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div class="flex-1 overflow-y-auto">
-            <div v-for="conversation in conversationsWithCorrectUnreadCount" :key="conversation.id" @click="selectConversation(conversation)"
-              class="py-2 px-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-              :class="{ 
-                'bg-gray-50': selectedConversation?.id === conversation.id,
-                'bg-blue-50': conversation.unreadCount > 0 && selectedConversation?.id !== conversation.id 
-              }">
-              <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span class="text-gray-600 text-sm font-medium">{{ conversation.name.charAt(0) }}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate"
-                     :class="{ 'font-bold': conversation.unreadCount > 0 }">
-                    {{ conversation.name }}
-                  </p>
-                  <p class="text-xs text-gray-500 truncate"
-                     :class="{ 'font-semibold': conversation.unreadCount > 0 }">
-                    {{ conversation.lastMessage }}
-                  </p>
-                </div>
-                <div class="flex flex-col items-end">
-                  <span class="text-xs text-gray-500"
-                        :class="{ 'font-semibold': conversation.unreadCount > 0 }">
-                    {{ conversation.lastMessageTime }}
-                  </span>
-                  <span v-if="conversation.unreadCount > 0"
-                    class="mt-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-h-[20px] min-w-[20px] px-1 flex items-center justify-center">
-                    {{ conversation.unreadCount }}
-                  </span>
+          <div class="flex-1 overflow-y-auto bg-gray-50">
+            <div v-if="filteredConversations.length > 0">
+              <div 
+                v-for="conversation in filteredConversations" 
+                :key="conversation.id" 
+                @click="() => { 
+                  selectConversation(conversation); 
+                  showConversationList = false;
+                }"
+                class="py-3 px-4 hover:bg-white border-b border-gray-100 cursor-pointer transition-colors duration-150"
+                :class="{ 
+                  'bg-white shadow-sm': selectedConversation?.id === conversation.id,
+                  'hover:bg-blue-50': conversation.unreadCount > 0 && selectedConversation?.id !== conversation.id 
+                }"
+              >
+                <div class="flex items-start space-x-3">
+                  <!-- Avatar with online indicator -->
+                  <div class="relative flex-shrink-0">
+                    <div class="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-r from-blue-200 to-indigo-200 flex items-center justify-center shadow-sm">
+                      <span class="text-blue-700 text-sm font-medium">{{ conversation.name.charAt(0).toUpperCase() }}</span>
+                    </div>
+                    <div 
+                      class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white"
+                      :class="{'bg-green-500': true, 'bg-gray-300': false}"
+                    ></div>
+                  </div>
+                  
+                  <!-- Content -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-start mb-0.5">
+                      <h3 
+                        class="text-sm truncate pr-2"
+                        :class="{ 'font-bold text-gray-900': conversation.unreadCount > 0, 'font-medium text-gray-800': !conversation.unreadCount }"
+                      >
+                        {{ conversation.name }}
+                      </h3>
+                      <span 
+                        class="text-xs whitespace-nowrap"
+                        :class="{ 'text-blue-600 font-medium': conversation.unreadCount > 0, 'text-gray-500': !conversation.unreadCount }"
+                      >
+                        {{ conversation.lastMessageTime }}
+                      </span>
+                    </div>
+                    <p 
+                      class="text-xs truncate pr-8"
+                      :class="{ 'text-gray-700': conversation.unreadCount > 0, 'text-gray-500': !conversation.unreadCount }"
+                    >
+                      {{ conversation.lastMessage || 'No messages yet' }}
+                    </p>
+                    
+                    <!-- Unread badge -->
+                    <div class="flex justify-between items-center mt-1">
+                      <div class="flex space-x-1">
+                        <!-- You can add message status icons here if needed -->
+                      </div>
+                      <div v-if="conversation.unreadCount > 0" class="flex items-center">
+                        <span class="px-1.5 py-0.5 bg-blue-500 text-white text-xs font-medium rounded-full">
+                          {{ conversation.unreadCount }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            <!-- Empty filtered results -->
+            <div v-else-if="searchQuery && conversationsWithCorrectUnreadCount.length > 0" class="p-6 text-center text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p class="text-sm">No results found for "{{ searchQuery }}"</p>
+              <button @click="searchQuery = ''" class="mt-2 text-blue-500 text-xs">Clear search</button>
+            </div>
+            
+            <!-- Empty conversations state -->
+            <div v-else class="p-6 text-center text-gray-500">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <p class="text-sm">No conversations yet</p>
+              <p class="text-xs mt-1">Your messages will appear here</p>
             </div>
           </div>
         </div>
 
         <!-- Chat Area -->
-        <div class="flex-1 flex flex-col min-h-0">
+        <div 
+          class="flex-1 flex flex-col min-h-0"
+          :class="{
+            'hidden md:flex': showConversationList, 
+            'flex': !showConversationList
+          }"
+        >
           <div v-if="selectedConversation" class="flex-1 flex flex-col min-h-0">
-            <!-- Chat Header -->
+            <!-- Chat Header with Back Button on Mobile -->
             <div class="py-2 px-3 border-b border-gray-200 flex-shrink-0">
               <div class="flex items-center space-x-2">
+                <!-- Back Button (Mobile Only) -->
+                <button 
+                  @click="showConversationList = true" 
+                  class="md:hidden p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
                 <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                   <span class="text-gray-600 text-sm font-medium">{{ selectedConversation.name.charAt(0) }}</span>
                 </div>
@@ -69,13 +168,18 @@
             <div class="flex-1 overflow-y-auto p-3 space-y-2" ref="messagesContainer">
               <div v-for="message in messages" :key="message.id"
                 :class="['flex', message.senderId === currentUserId ? 'justify-end' : 'justify-start']">
-                <div :class="['max-w-[70%] rounded-lg p-2', 
+                <div :class="['max-w-[85%] sm:max-w-[75%] rounded-lg p-2', 
                           message.senderId === currentUserId ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900']">
-                  <p class="text-sm">{{ message.content }}</p>
+                  <p class="text-sm break-words">{{ message.content }}</p>
                   <p class="text-xs mt-0.5" :class="message.senderId === currentUserId ? 'text-blue-100' : 'text-gray-500'">
                     {{ formatTime(message.timestamp) }}
                   </p>
                 </div>
+              </div>
+              <!-- Empty messages state -->
+              <div v-if="messages.length === 0" class="p-4 text-center text-gray-500">
+                <p class="text-sm">No messages yet</p>
+                <p class="text-xs mt-1">Start the conversation!</p>
               </div>
             </div>
 
@@ -101,7 +205,14 @@
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               <h3 class="mt-1 text-sm font-medium text-gray-900">No conversation selected</h3>
-              <p class="mt-0.5 text-xs text-gray-500">Select a conversation to start messaging</p>
+              <p class="mt-0.5 text-xs text-gray-500 px-4">Select a conversation from the list to start messaging</p>
+              <!-- Show button on mobile to go back to conversation list -->
+              <button 
+                @click="showConversationList = true"
+                class="mt-4 md:hidden px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium"
+              >
+                View Conversations
+              </button>
             </div>
           </div>
         </div>
@@ -176,6 +287,20 @@ const scrollToBottom = async () => {
     messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
 }
+
+const showConversationList = ref(true); // Default to showing conversation list on mobile
+
+const searchQuery = ref('');
+
+const filteredConversations = computed(() => {
+  if (!searchQuery.value) return conversationsWithCorrectUnreadCount.value;
+  
+  const query = searchQuery.value.toLowerCase();
+  return conversationsWithCorrectUnreadCount.value.filter(conversation => 
+    conversation.name.toLowerCase().includes(query) || 
+    (conversation.lastMessage && conversation.lastMessage.toLowerCase().includes(query))
+  );
+});
 
 onMounted(() => {
   const usersRef = dbRef(database, 'users')

@@ -30,6 +30,7 @@
                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order Date</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pricing Status</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
                 <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
               </tr>
@@ -56,13 +57,23 @@
                     {{ order.status }}
                   </span>
                 </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span v-if="order.type === 'custom'" :class="[
+                    'px-3 py-1 text-xs font-medium rounded-full',
+                    getPricingStatusClass(order.pricingStatus || 'pending')
+                  ]">
+                    {{ order.pricingStatus || 'pending' }}
+                  </span>
+                  <span v-else class="text-gray-400">-</span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  ₱{{ order.totalAmount.toFixed(2) }}
+                  <span v-if="order.type === 'custom' && order.needsPricing">Needs Pricing</span>
+                  <span v-else>₱{{ order.totalAmount?.toFixed(2) || '0.00' }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                   <div class="flex items-center space-x-3">
                     <router-link 
-                      :to="`/orders/${order.orderId}`" 
+                      :to="(order as Order).type === 'custom' ? `/custom-orders/${order.orderId}` : `/orders/${order.orderId}`"
                       class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,6 +191,20 @@ const getStatusClass = (status: string) => {
     case 'accepted':
       return 'bg-green-100 text-green-800'
     case 'declined':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+// Function to get the appropriate CSS class for pricing status
+const getPricingStatusClass = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'priced':
+      return 'bg-green-100 text-green-800'
+    case 'rejected':
       return 'bg-red-100 text-red-800'
     default:
       return 'bg-gray-100 text-gray-800'

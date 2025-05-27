@@ -14,6 +14,28 @@ export interface OrderItem {
   size: string
   totalPrice: number
   unitPrice: number
+  // Custom cake properties
+  customDetails?: {
+    designData?: {
+      cakeLayers: any[]
+      layerIdCounter: number
+    }
+    layers?: number
+    flavor?: {
+      name: string
+      description: string
+      color: string
+    }
+    greeting?: {
+      enabled: boolean
+      text: string
+      color: string
+      size: number
+      depth: number
+      layout: string
+    }
+    message?: string
+  }
 }
 
 export interface Order {
@@ -25,6 +47,11 @@ export interface Order {
   customerName: string
   createdAt: number
   items: OrderItem[]
+  // Custom order specific fields
+  needsPricing?: boolean
+  pricingStatus?: 'pending' | 'priced' | 'rejected'
+  customerEmail?: string
+  updatedAt?: number
 }
 
 export const useOrderStore = defineStore('orders', () => {
@@ -71,28 +98,43 @@ export const useOrderStore = defineStore('orders', () => {
       const token = await user.getIdTokenResult()
       console.log('User token:', token) // Debug log
 
-      // Fetch non-custom orders
-      const nonCustomOrdersRef = dbRef(database, 'orders/non-custom')
-      const snapshot = await get(nonCustomOrdersRef)
+      // Fetch both custom and non-custom orders
+      const [nonCustomSnapshot, customSnapshot] = await Promise.all([
+        get(dbRef(database, 'orders/non-custom')),
+        get(dbRef(database, 'orders/custom'))
+      ])
       
-      if (snapshot.exists()) {
-        const ordersData = snapshot.val()
-        console.log('Orders data:', ordersData) // Debug log
-        const ordersArray: Order[] = []
-        
-        // Convert the object to an array
-        Object.keys(ordersData).forEach(orderId => {
+      const ordersArray: Order[] = []
+      
+      // Process non-custom orders
+      if (nonCustomSnapshot.exists()) {
+        const nonCustomOrders = nonCustomSnapshot.val()
+        Object.keys(nonCustomOrders).forEach(orderId => {
           ordersArray.push({
-            ...ordersData[orderId],
+            ...nonCustomOrders[orderId],
             orderId,
-            type: 'non-custom' // Ensure type is set correctly
+            type: 'non-custom'
           })
         })
-        
-        orders.value = ordersArray
-      } else {
-        orders.value = []
       }
+      
+      // Process custom orders
+      if (customSnapshot.exists()) {
+        const customOrders = customSnapshot.val()
+        Object.keys(customOrders).forEach(orderId => {
+          ordersArray.push({
+            ...customOrders[orderId],
+            orderId,
+            type: 'custom',
+            totalAmount: customOrders[orderId].totalAmount || 0 // Ensure totalAmount exists
+          })
+        })
+      }
+      
+      // Sort orders by createdAt in descending order (newest first)
+      ordersArray.sort((a, b) => b.createdAt - a.createdAt)
+      
+      orders.value = ordersArray
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch orders'
       console.error('Error fetching orders:', e)

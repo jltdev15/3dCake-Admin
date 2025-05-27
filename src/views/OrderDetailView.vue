@@ -88,7 +88,8 @@
                 <div class="bg-gray-50 rounded-lg p-4">
                   <div class="flex justify-between items-center">
                     <span class="text-lg font-medium text-gray-900">Total Amount</span>
-                    <span class="text-2xl font-semibold text-gray-900">₱{{ order.totalAmount.toFixed(2) }}</span>
+                    <span v-if="order.type === 'custom' && order.needsPricing" class="text-lg font-medium text-yellow-600">Needs Pricing</span>
+                    <span v-else class="text-2xl font-semibold text-gray-900">₱{{ order.totalAmount?.toFixed(2) || '0.00' }}</span>
                   </div>
                 </div>
               </div>

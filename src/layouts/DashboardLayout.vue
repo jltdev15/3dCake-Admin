@@ -153,6 +153,10 @@
                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 Messaging
+                <span v-if="messagingStore.totalUnreadCount > 0" 
+                      class="ml-2 bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                  {{ messagingStore.totalUnreadCount }}
+                </span>
               </router-link>
             </li>
           </ul>
@@ -253,6 +257,10 @@
                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 Messaging
+                <span v-if="messagingStore.totalUnreadCount > 0" 
+                      class="ml-2 bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                  {{ messagingStore.totalUnreadCount }}
+                </span>
               </router-link>
             </li>
           </ul>
@@ -353,15 +361,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useMessagingStore } from '../stores/messaging'
 import { ref as dbRef, onValue, off, update } from 'firebase/database'
 import { database } from '../firebase/config'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const messagingStore = useMessagingStore()
 const sidebarOpen = ref(false)
 const notificationDropdownOpen = ref(false)
 
@@ -484,6 +494,18 @@ const pageTitle = computed(() => {
 // Setup and cleanup
 onMounted(() => {
   fetchNotifications()
+  
+  // Initialize message listener when component mounts and user is authenticated
+  if (authStore.isAuthenticated) {
+    messagingStore.initMessageListener()
+  }
+})
+
+// Watch for auth changes to initialize/remove message listener
+watch(() => authStore.isAuthenticated, (isAuthenticated) => {
+  if (isAuthenticated) {
+    messagingStore.initMessageListener()
+  }
 })
 
 onUnmounted(() => {

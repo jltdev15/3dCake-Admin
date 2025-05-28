@@ -69,54 +69,6 @@
           </form>
         </div>
       </div>
-
-      <!-- Additional Settings Sections -->
-      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Notification Settings -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h2>
-            <div class="space-y-4">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="text-sm font-medium text-gray-700">Email Notifications</h3>
-                  <p class="text-sm text-gray-500">Receive email updates about your account</p>
-                </div>
-                <button class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-gray-200">
-                  <span class="translate-x-0 pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out">
-                    <span class="opacity-100 ease-in duration-200 absolute inset-0 flex h-full w-full items-center justify-center transition-opacity" aria-hidden="true">
-                      <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 12 12">
-                        <path d="M4 8l2-2m0 0l2-2M6 6L4 4m2 2l2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <div class="p-6">
-            <h2 class="text-lg font-medium text-gray-900 mb-4">Security</h2>
-            <div class="space-y-4">
-              <button class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors duration-200">
-                <span>Change Password</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              <button class="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md transition-colors duration-200">
-                <span>Two-Factor Authentication</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </DashboardLayout>
 </template>

@@ -118,7 +118,7 @@
       </div>
 
       <!-- Confirmation Modal -->
-      <div v-if="showModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm flex items-center justify-center z-50">
+      <div v-if="showModal" class="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
@@ -186,10 +186,14 @@ const { users, loading, error } = storeToRefs(userStore)
 
 // Filtered users based on search
 const filteredUsers = computed(() => {
-  if (!searchQuery.value) return users.value
+  // First filter out the admin user
+  const filteredList = users.value.filter(user => user.email !== 'admin@gmail.com')
+  
+  // Then apply search filtering if needed
+  if (!searchQuery.value) return filteredList
 
   const query = searchQuery.value.toLowerCase()
-  return users.value.filter(user =>
+  return filteredList.filter(user =>
     user.name.toLowerCase().includes(query) ||
     user.email.toLowerCase().includes(query)
   )

@@ -40,18 +40,19 @@ export interface OrderItem {
 
 export interface Order {
   orderId: string
-  type: 'non-custom' | 'custom'
+  hasCustomItems: boolean
+  hasRegularItems: boolean
   status: 'pending' | 'accepted' | 'declined'
   totalAmount: number
   userId: string
   customerName: string
+  customerEmail: string
   createdAt: number
+  updatedAt: number
   items: OrderItem[]
   // Custom order specific fields
   needsPricing?: boolean
-  pricingStatus?: 'pending' | 'priced' | 'rejected'
-  customerEmail?: string
-  updatedAt?: number
+  pricingStatus?: 'pending' | 'priced' | 'rejected' | 'completed'
 }
 
 export const useOrderStore = defineStore('orders', () => {
@@ -70,15 +71,16 @@ export const useOrderStore = defineStore('orders', () => {
   })
 
   const getTotalRevenue = computed(() => {
-    return orders.value.reduce((total, order) => {
-      return order.status === 'accepted' ? total + order.totalAmount : total
-    }, 0)
+    return orders.value.filter(order => order.status === 'accepted')
+      .reduce((total, order) => total + order.totalAmount, 0)
   })
 
-  const getOrdersByType = computed(() => {
-    return (type: 'non-custom' | 'custom') => {
-      return orders.value.filter(order => order.type === type)
-    }
+  const getCustomOrders = computed(() => {
+    return orders.value.filter(order => order.hasCustomItems)
+  })
+
+  const getRegularOrders = computed(() => {
+    return orders.value.filter(order => order.hasRegularItems && !order.hasCustomItems)
   })
 
   // Actions
@@ -98,35 +100,17 @@ export const useOrderStore = defineStore('orders', () => {
       const token = await user.getIdTokenResult()
       console.log('User token:', token) // Debug log
 
-      // Fetch both custom and non-custom orders
-      const [nonCustomSnapshot, customSnapshot] = await Promise.all([
-        get(dbRef(database, 'orders/non-custom')),
-        get(dbRef(database, 'orders/custom'))
-      ])
+      // Fetch orders from the new structure
+      const ordersSnapshot = await get(dbRef(database, 'orders'))
       
       const ordersArray: Order[] = []
       
-      // Process non-custom orders
-      if (nonCustomSnapshot.exists()) {
-        const nonCustomOrders = nonCustomSnapshot.val()
-        Object.keys(nonCustomOrders).forEach(orderId => {
+      if (ordersSnapshot.exists()) {
+        const ordersData = ordersSnapshot.val()
+        Object.keys(ordersData).forEach(orderId => {
           ordersArray.push({
-            ...nonCustomOrders[orderId],
-            orderId,
-            type: 'non-custom'
-          })
-        })
-      }
-      
-      // Process custom orders
-      if (customSnapshot.exists()) {
-        const customOrders = customSnapshot.val()
-        Object.keys(customOrders).forEach(orderId => {
-          ordersArray.push({
-            ...customOrders[orderId],
-            orderId,
-            type: 'custom',
-            totalAmount: customOrders[orderId].totalAmount || 0 // Ensure totalAmount exists
+            ...ordersData[orderId],
+            orderId
           })
         })
       }
@@ -143,7 +127,7 @@ export const useOrderStore = defineStore('orders', () => {
     }
   }
 
-  const addOrder = async (order: Omit<Order, 'orderId' | 'createdAt'>) => {
+  const addOrder = async (order: Omit<Order, 'orderId' | 'createdAt' | 'updatedAt'>) => {
     loading.value = true
     error.value = null
     try {
@@ -152,13 +136,15 @@ export const useOrderStore = defineStore('orders', () => {
         throw new Error('User not authenticated')
       }
 
+      const timestamp = Date.now()
       const newOrder = {
         ...order,
-        orderId: `ord${Date.now()}`,
-        createdAt: Date.now()
+        orderId: `ord${timestamp.toString().substring(timestamp.toString().length - 6).padStart(6, '0')}`,
+        createdAt: timestamp,
+        updatedAt: timestamp
       }
       
-      const orderRef = dbRef(database, `orders/${order.type}/${newOrder.orderId}`)
+      const orderRef = dbRef(database, `orders/${newOrder.orderId}`)
       await set(orderRef, newOrder)
       orders.value.push(newOrder)
     } catch (e) {
@@ -178,12 +164,18 @@ export const useOrderStore = defineStore('orders', () => {
         throw new Error('User not authenticated')
       }
 
-      const orderRef = dbRef(database, `orders/${updates.type || 'non-custom'}/${orderId}`)
-      await update(orderRef, updates)
+      // Include the updatedAt timestamp
+      const updatedData = {
+        ...updates,
+        updatedAt: Date.now()
+      }
+
+      const orderRef = dbRef(database, `orders/${orderId}`)
+      await update(orderRef, updatedData)
       
       const index = orders.value.findIndex(order => order.orderId === orderId)
       if (index !== -1) {
-        orders.value[index] = { ...orders.value[index], ...updates }
+        orders.value[index] = { ...orders.value[index], ...updatedData }
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to update order'
@@ -193,7 +185,7 @@ export const useOrderStore = defineStore('orders', () => {
     }
   }
 
-  const deleteOrder = async (orderId: string, type: 'non-custom' | 'custom') => {
+  const deleteOrder = async (orderId: string) => {
     loading.value = true
     error.value = null
     try {
@@ -202,7 +194,7 @@ export const useOrderStore = defineStore('orders', () => {
         throw new Error('User not authenticated')
       }
 
-      const orderRef = dbRef(database, `orders/${type}/${orderId}`)
+      const orderRef = dbRef(database, `orders/${orderId}`)
       await remove(orderRef)
       orders.value = orders.value.filter(order => order.orderId !== orderId)
     } catch (e) {
@@ -222,7 +214,8 @@ export const useOrderStore = defineStore('orders', () => {
     getPendingOrders,
     getCompletedOrders,
     getTotalRevenue,
-    getOrdersByType,
+    getCustomOrders,
+    getRegularOrders,
     // Actions
     fetchOrders,
     addOrder,

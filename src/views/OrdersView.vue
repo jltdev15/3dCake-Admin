@@ -44,7 +44,7 @@
                   {{ order.customerName }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {{ order.type }}
+                  {{ getOrderType(order) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {{ formatDate(order.createdAt) }}
@@ -58,22 +58,22 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                  <span v-if="order.type === 'custom'" :class="[
+                  <span v-if="order.hasCustomItems" :class="[
                     'px-3 py-1 text-xs font-medium rounded-full',
                     getPricingStatusClass(order.pricingStatus || 'pending')
                   ]">
                     {{ order.pricingStatus || 'pending' }}
                   </span>
-                  <span v-else class="text-gray-400">-</span>
+                  <span v-else class="text-gray-400">N/A</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  <span v-if="order.type === 'custom' && order.needsPricing">Needs Pricing</span>
+                  <span v-if="order.hasCustomItems && order.needsPricing">Needs Pricing</span>
                   <span v-else>₱{{ order.totalAmount?.toFixed(2) || '0.00' }}</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                   <div class="flex items-center space-x-3">
                     <router-link 
-                      :to="(order as Order).type === 'custom' ? `/custom-orders/${order.orderId}` : `/orders/${order.orderId}`"
+                      :to="order.hasCustomItems ? `/custom-orders/${order.orderId}` : `/orders/${order.orderId}`"
                       class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,9 +166,13 @@ const { orders, loading, error } = storeToRefs(orderStore)
 // Filtered orders based on search
 const filteredOrders = computed(() => {
   return orders.value.filter((order: Order) => {
-    return searchQuery.value === '' ||
-      order.orderId.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      order.type.toLowerCase().includes(searchQuery.value.toLowerCase())
+    if (searchQuery.value === '') return true;
+    
+    const query = searchQuery.value.toLowerCase();
+    return order.orderId.toLowerCase().includes(query) ||
+      order.customerName.toLowerCase().includes(query) ||
+      order.customerEmail.toLowerCase().includes(query) ||
+      getOrderType(order).toLowerCase().includes(query);
   })
 })
 
@@ -242,6 +246,19 @@ const updateOrderStatus = async (orderId: string, newStatus: Order['status']) =>
   } catch (e) {
     console.error('Failed to update order status:', e)
     // You might want to show an error message to the user here
+  }
+}
+
+// Function to get order type label
+const getOrderType = (order: Order) => {
+  if (order.hasCustomItems && order.hasRegularItems) {
+    return 'Mixed'
+  } else if (order.hasCustomItems) {
+    return 'Custom'
+  } else if (order.hasRegularItems) {
+    return 'Regular'
+  } else {
+    return 'Unknown'
   }
 }
 </script>

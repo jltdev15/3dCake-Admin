@@ -365,7 +365,7 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useMessagingStore } from '../stores/messaging'
-import { ref as dbRef, onValue, off, update } from 'firebase/database'
+import { ref as dbRef, onValue, off, update, get } from 'firebase/database'
 import { database } from '../firebase/config'
 
 const route = useRoute()
@@ -447,9 +447,27 @@ const handleNotificationClick = async (notification: any) => {
     await markNotificationAsRead(notification.id)
   }
   
-  // Navigate to the order detail page
+  // Navigate to the appropriate order detail page
   if (notification.orderId) {
-    router.push(`/orders/${notification.orderId}`)
+    // First fetch the order to determine its type
+    try {
+      const orderRef = dbRef(database, `orders/${notification.orderId}`)
+      const snapshot = await get(orderRef)
+      const orderData = snapshot.val()
+      
+      if (orderData) {
+        // Route to custom order view if it has custom items
+        if (orderData.hasCustomItems) {
+          router.push(`/custom-orders/${notification.orderId}`)
+        } else {
+          router.push(`/orders/${notification.orderId}`)
+        }
+      } else {
+        console.error('Order not found')
+      }
+    } catch (error) {
+      console.error('Error fetching order:', error)
+    }
   }
   
   notificationDropdownOpen.value = false

@@ -15,14 +15,19 @@ interface OrderItem {
 }
 
 interface Order {
-  createdAt: number
-  customerName: string
-  items: OrderItem[]
   orderId: string
+  createdAt: number
+  updatedAt: number
+  customerName: string
+  customerEmail: string
+  userId: string
+  hasRegularItems: boolean
+  hasCustomItems: boolean
+  items: OrderItem[]
   status: 'accepted' | 'declined' | 'pending'
   totalAmount: number
-  type: 'non-custom'
-  userId: string
+  needsPricing: boolean
+  pricingStatus: string
 }
 
 export const useDashboardStore = defineStore('dashboard', () => {
@@ -40,7 +45,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
     try {
       // Listen to orders
-      const ordersRef = dbRef(database, 'orders/non-custom')
+      const ordersRef = dbRef(database, 'orders')
       onValue(ordersRef, (snapshot) => {
         const ordersData = snapshot.val() || {}
         console.log('Raw orders data:', ordersData)

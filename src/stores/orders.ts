@@ -14,6 +14,8 @@ export interface OrderItem {
   size: string
   totalPrice: number
   unitPrice: number
+  // Indicates whether the item is a custom-made cake
+  isCustomCake?: boolean
   // Custom cake properties
   customDetails?: {
     designData?: {
@@ -26,6 +28,11 @@ export interface OrderItem {
       description: string
       color: string
     }
+    layerFlavors?: Array<{
+      name: string
+      description: string
+      color: string
+    }>
     greeting?: {
       enabled: boolean
       text: string
@@ -39,20 +46,19 @@ export interface OrderItem {
 }
 
 export interface Order {
+  id: string
   orderId: string
-  hasCustomItems: boolean
-  hasRegularItems: boolean
-  status: 'pending' | 'accepted' | 'declined'
-  totalAmount: number
-  userId: string
-  customerName: string
-  customerEmail: string
-  createdAt: number
+  createdAt: string
   updatedAt: number
+  customerAddress: string
+  customerContact: string
+  customerName: string
   items: OrderItem[]
-  // Custom order specific fields
-  needsPricing?: boolean
-  pricingStatus?: 'pending' | 'priced' | 'rejected' | 'completed'
+  paymentMethod: string
+  paymentStatus: string
+  status: 'pending' | 'accepted' | 'declined'
+  total: number
+  userId: string
 }
 
 export const useOrderStore = defineStore('orders', () => {
@@ -72,11 +78,11 @@ export const useOrderStore = defineStore('orders', () => {
 
   const getTotalRevenue = computed(() => {
     return orders.value.filter(order => order.status === 'accepted')
-      .reduce((total, order) => total + order.totalAmount, 0)
+      .reduce((total, order) => total + order.total, 0)
   })
 
   const getCustomOrders = computed(() => {
-    return orders.value.filter(order => order.hasCustomItems)
+    return orders.value.filter(order => order.items.some(item => item.isCustomCake))
   })
 
   const getRegularOrders = computed(() => {

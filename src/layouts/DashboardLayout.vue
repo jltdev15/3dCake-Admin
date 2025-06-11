@@ -28,7 +28,7 @@
 
           <!-- Mobile Notification Dropdown -->
           <div v-if="notificationDropdownOpen"
-            class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-100 z-50 transform transition-all duration-200 ease-in-out">
+            class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-100 z-50 transform transition-all duration-200 ease-in-out">
             <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
               <h3 class="font-semibold text-gray-800">Notifications</h3>
               <button @click="markAllAsRead"
@@ -117,7 +117,7 @@
                 Orders
               </router-link>
             </li>
-            <li>
+            <!-- <li>
               <router-link to="/settings"
                 class="flex items-center px-4 py-3 text-gray-700 hover:bg-white/50 transition-colors duration-200"
                 :class="{ 'bg-white/70 text-gray-900': $route.path === '/settings' }" @click="closeSidebarOnMobile">
@@ -130,7 +130,7 @@
                 </svg>
                 Settings
               </router-link>
-            </li>
+            </li> -->
             <li>
               <router-link to="/users"
                 class="flex items-center px-4 py-3 text-gray-700 hover:bg-white/50 transition-colors duration-200"
@@ -179,29 +179,29 @@
 
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden md:flex md:flex-col md:w-64 lg:w-72 bg-gradient-to-r from-[#D3D58E] to-[#FFF7D0] border-r border-gray-200">
+      class="hidden md:flex md:flex-col md:w-80 lg:w-96 bg-gradient-to-r from-[#D3D58E] to-[#FFF7D0] border-r border-gray-200">
       <div class="h-full flex flex-col">
         <!-- Logo section -->
-        <div class="p-4 sm:p-6 border-b border-gray-200">
+        <div class="p-6 sm:p-8 border-b border-gray-200">
           <div class="flex items-center">
-            <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden shadow-md mr-3 sm:mr-4">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden shadow-md mr-4 sm:mr-5">
               <img src="/images/logo.jpg" alt="Logo" class="w-full h-full object-cover" />
             </div>
-            <h1 class="text-lg sm:text-xl font-semibold text-gray-800">Psalm Cakes</h1>
+            <h1 class="text-2xl sm:text-3xl font-semibold text-gray-800">Psalm Cakes</h1>
           </div>
         </div>
 
         <!-- Navigation Links -->
-        <nav class="flex-grow px-3 sm:px-4 py-3 sm:py-4">
-          <div class="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-3 sm:mb-4">
+        <nav class="flex-grow px-4 sm:px-6 py-4 sm:py-6">
+          <div class="text-base font-semibold text-gray-700 uppercase tracking-wider mb-4 sm:mb-6">
             Navigation
           </div>
-          <ul class="space-y-1">
+          <ul class="space-y-2">
             <li>
               <router-link to="/dashboard"
-                class="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200"
+                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
                 :class="{ 'bg-white/70 text-gray-900': $route.path === '/dashboard' }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24"
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -211,9 +211,9 @@
             </li>
             <li>
               <router-link to="/orders"
-                class="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200"
+                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
                 :class="{ 'bg-white/70 text-gray-900': $route.path === '/orders' }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24"
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -221,11 +221,11 @@
                 Orders
               </router-link>
             </li>
-            <li>
+            <!-- <li>
               <router-link to="/settings"
-                class="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200"
+                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
                 :class="{ 'bg-white/70 text-gray-900': $route.path === '/settings' }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24"
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -234,31 +234,31 @@
                 </svg>
                 Settings
               </router-link>
-            </li>
+            </li> -->
             <li>
               <router-link to="/users"
-                class="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200"
+                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
                 :class="{ 'bg-white/70 text-gray-900': $route.path === '/users' }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24"
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
-                User Management
+                Customers
               </router-link>
             </li>
             <li>
               <router-link to="/messaging"
-                class="flex items-center px-3 sm:px-4 py-2 sm:py-3 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200"
+                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
                 :class="{ 'bg-white/70 text-gray-900': $route.path === '/messaging' }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3" fill="none" viewBox="0 0 24 24"
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-4" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 Messaging
                 <span v-if="messagingStore.totalUnreadCount > 0" 
-                      class="ml-2 bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                      class="ml-2 bg-red-500 text-white text-base font-medium px-3 py-1 rounded-full">
                   {{ messagingStore.totalUnreadCount }}
                 </span>
               </router-link>
@@ -267,10 +267,10 @@
         </nav>
 
         <!-- Logout Button -->
-        <div class="p-4 border-t border-gray-200">
+        <div class="p-6 border-t border-gray-200">
           <button @click="logout"
-            class="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+            class="w-full flex items-center justify-center px-5 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mr-3" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -310,7 +310,7 @@
 
               <!-- Notification Dropdown -->
               <div v-if="notificationDropdownOpen"
-                class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-100 z-50 transform transition-all duration-200 ease-in-out">
+                class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-100 z-50 transform transition-all duration-200 ease-in-out">
                 <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                   <h3 class="font-semibold text-gray-800">Notifications</h3>
                   <button @click="markAllAsRead"
@@ -400,12 +400,12 @@ const fetchNotifications = () => {
   onValue(notificationsRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
-      // Convert object to array and sort by createdAt
+      // Convert object to array and sort by timestamp
       const notificationsArray = Object.entries(data).map(([id, notification]: [string, any]) => ({
         id,
         ...notification,
-        time: formatTime(notification.createdAt)
-      })).sort((a, b) => b.createdAt - a.createdAt)
+        time: formatTime(new Date(notification.timestamp).getTime())
+      })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
       notifications.value = notificationsArray
       unreadNotificationsCount.value = notificationsArray.filter(n => !n.read).length
@@ -456,10 +456,12 @@ const handleNotificationClick = async (notification: any) => {
       const orderData = snapshot.val()
       
       if (orderData) {
-        // Route to custom order view if it has custom items
-        if (orderData.hasCustomItems) {
+        // Determine order type based on hasCustomItems and hasRegularItems
+        if (orderData.items.some((item: any) => item.isCustomCake)) {
+          // Pure custom order
           router.push(`/custom-orders/${notification.orderId}`)
         } else {
+          // Regular order or mixed order (both custom and regular items)
           router.push(`/orders/${notification.orderId}`)
         }
       } else {

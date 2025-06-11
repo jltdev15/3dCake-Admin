@@ -180,6 +180,10 @@ const defaultLayerSettings = {
   height: 0.5,
   color: '#FFB6C1',
   toppings: [],
+  flowerPosition: "inner", // Default flower position
+  roseColor: "red", // Default rose color
+  strawberryPosition: "inner", // Default strawberry position
+  candlePosition: "center", // Default candle position
   topper: {
     enabled: false,
     type: 'none',
@@ -200,6 +204,23 @@ const defaultLayerSettings = {
     animationProgress: 0,
     animationSpeed: 0.5
   },
+  surfaceIcing: {
+    // New: For icing on the top surface of the layer
+    enabled: false,
+    color: '#FFFFFF',
+    thickness: 0.02, // A small thickness for the surface icing layer
+  },
+  patternedTopIcing: {
+    // New: For styled icing patterns on the top surface
+    enabled: false,
+    style: 'smooth', // e.g., smooth, curl, shell, rosette
+    color: '#FFC0CB', // Default to pink for visibility
+    thickness: 0.04,
+    position: 'inner', // e.g., inner, mid, outer
+    isAnimating: false, // For potential future animations
+    animationProgress: 0,
+    animationSpeed: 0.5,
+  },
   middleBandIcing: {
     enabled: false,
     color: '#FFFFFF',
@@ -216,17 +237,84 @@ const defaultLayerSettings = {
     isAnimating: false,
     animationProgress: 0,
     animationSpeed: 0.5
-  }
+  },
+  // Topper positioning options
+  strawberryPosition: 'inner', // inner, mid, outer, all
+  candlePosition: 'center', // center, edge, random, etc.
+  flowerPosition: 'center',
+  roseColor: '#FF69B4'
 };
 
 // Move sizeOptions above selectedSize
-const sizeOptions = [
-  { name: '6 x 6', diameter: 6, height: 6, servings: '8-10', price: 999 },
-  { name: '6 x 7', diameter: 6, height: 7, servings: '10-14', price: 1299 },
-  { name: '6 x 8', diameter: 6, height: 8, servings: '12-16', price: 1649 },
-  { name: '6 x 9', diameter: 6, height: 9, servings: '16-20', price: 1949 },
-  { name: '6 x 10', diameter: 6, height: 10, servings: '20-25', price: 2399 }
+const oneTierSizeOptions = [
+  { name: "6″ × 6″", diameter: 6, height: 6, price: 999 },
+  { name: "6″ × 7″", diameter: 6, height: 7, price: 1299 },
+  { name: "6″ × 8″", diameter: 6, height: 8, price: 1649 },
+  { name: "6″ × 9″", diameter: 6, height: 9, price: 1949 },
+  { name: "6″ × 10″", diameter: 6, height: 10, price: 2399 },
 ];
+
+const twoTierSizeOptions = [
+  {
+    name: "4 x 5 & 6 x 5",
+    diameter: [
+      { diameter: 4, height: 5 },
+      { diameter: 6, height: 5 },
+    ],
+    price: 2199,
+  },
+  {
+    name: "5 x 5 & 7 x 5",
+    diameter: [
+      { diameter: 5, height: 5 },
+      { diameter: 7, height: 5 },
+    ],
+    price: 2399,
+  },
+  {
+    name: "6 x 5 & 8 x 5",
+    diameter: [
+      { diameter: 6, height: 5 },
+      { diameter: 8, height: 5 },
+    ],
+    price: 2599,
+  },
+];
+
+const threeTierSizeOptions = [
+  {
+    name: "4 x 5 & 6 x 5 & 8 x 5",
+    diameter: [
+      { diameter: 4, height: 5 },
+      { diameter: 6, height: 5 },
+      { diameter: 8, height: 5 },
+    ],
+    price: 3299,
+  },
+  {
+    name: "5 x 5 & 7 x 5 & 9 x 5",
+    diameter: [
+      { diameter: 5, height: 5 },
+      { diameter: 7, height: 5 },
+      { diameter: 9, height: 5 },
+    ],
+    price: 3599,
+  },
+];
+
+// Dynamic size options based on selected layers
+const sizeOptions = computed(() => {
+  switch (selectedLayers.value) {
+    case 1:
+      return oneTierSizeOptions;
+    case 2:
+      return twoTierSizeOptions;
+    case 3:
+      return threeTierSizeOptions;
+    default:
+      return oneTierSizeOptions;
+  }
+});
 
 const flavorOptions = [
   {
@@ -515,28 +603,7 @@ const onCanvasClick = (event) => {
 };
 
 const selectLayer = (layerId) => {
-  if (selectedLayerId) {
-    const previousLayerMesh = cakeGroup.children.find(
-      (child) => child.userData.layerId === selectedLayerId
-    );
-    if (previousLayerMesh && originalLayerMaterials.has(selectedLayerId)) {
-      previousLayerMesh.material = originalLayerMaterials.get(selectedLayerId);
-      originalLayerMaterials.delete(selectedLayerId);
-    }
-  }
   selectedLayerId = layerId;
-  if (selectedLayerId) {
-    const currentLayerMesh = cakeGroup.children.find(
-      (child) => child.userData.layerId === selectedLayerId
-    );
-    if (currentLayerMesh) {
-      if (!originalLayerMaterials.has(selectedLayerId)) {
-        originalLayerMaterials.set(selectedLayerId, currentLayerMesh.material);
-      }
-      currentLayerMesh.material = currentLayerMesh.material.clone();
-      currentLayerMesh.material.emissive.setHex(0x555555);
-    }
-  }
   updateControlsForSelectedLayer();
   renderCake();
 };
@@ -689,6 +756,9 @@ const addDecorations = (layerMesh, layerConfig) => {
 
     // Calculate topper base position
     let topperY = topY;
+    let topperX = 0;
+    let topperZ = 0;
+
     if (topper.position === 'top') {
       topperY += 0.1; // Slightly above the layer
       stickBaseY = topperY;
@@ -710,6 +780,46 @@ const addDecorations = (layerMesh, layerConfig) => {
         stickBaseY = bottomY + (layerHeight * 0.2); // Start 20% up from bottom
         stickTopY = bottomY - 0.1; // End just below the bottom of the cake
       }
+    } else if (topper.position === 'front') {
+      topperZ = layerRadius * 0.6; // Move towards front
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'back') {
+      topperZ = -layerRadius * 0.6; // Move towards back
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'left') {
+      topperX = -layerRadius * 0.6; // Move towards left
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'right') {
+      topperX = layerRadius * 0.6; // Move towards right
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'front-left') {
+      topperX = -layerRadius * 0.4; // Move towards front-left
+      topperZ = layerRadius * 0.4;
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'front-right') {
+      topperX = layerRadius * 0.4; // Move towards front-right
+      topperZ = layerRadius * 0.4;
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'back-left') {
+      topperX = -layerRadius * 0.4; // Move towards back-left
+      topperZ = -layerRadius * 0.4;
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else if (topper.position === 'back-right') {
+      topperX = layerRadius * 0.4; // Move towards back-right
+      topperZ = -layerRadius * 0.4;
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
+    } else {
+      // Default center position
+      stickBaseY = topY;
+      stickTopY = stickBaseY + stickHeight;
     }
 
     // Add stick/support for the topper (with better positioning logic)
@@ -723,10 +833,10 @@ const addDecorations = (layerMesh, layerConfig) => {
     
     if (topper.position === 'bottom') {
       // For bottom position, position stick appropriately
-      stick.position.set(0, bottomY - stickHeight/2 - 0.1, 0);
+      stick.position.set(topperX, bottomY - stickHeight/2 - 0.1, topperZ);
     } else {
-      // For top/center position
-      stick.position.set(0, stickBaseY + stickHeight / 2, 0);
+      // For all other positions, use calculated coordinates
+      stick.position.set(topperX, stickBaseY + stickHeight / 2, topperZ);
     }
     
     topperGroup.add(stick);
@@ -741,11 +851,11 @@ const addDecorations = (layerMesh, layerConfig) => {
     const base = new THREE.Mesh(baseGeometry, baseMaterial);
     
     if (topper.position === 'bottom') {
-      // For bottom position, position base at the top of the stick
-      base.position.set(0, bottomY - 0.1, 0);
+      // For bottom position, position base at the bottom
+      base.position.set(topperX, bottomY - 0.1, topperZ);
     } else {
-      // For top/center position
-      base.position.set(0, stickBaseY - 0.01, 0);
+      // For all other positions, use calculated coordinates
+      base.position.set(topperX, stickBaseY - 0.01, topperZ);
     }
     
     topperGroup.add(base);
@@ -778,10 +888,10 @@ const addDecorations = (layerMesh, layerConfig) => {
         
         if (topper.position === 'bottom') {
           // For bottom position, position text below the cake
-          textMesh.position.set(0, bottomY - stickHeight - textYOffset - 0.1, 0);
+          textMesh.position.set(topperX, bottomY - stickHeight - textYOffset - 0.1, topperZ);
         } else {
-          // For top/center position
-          textMesh.position.set(0, stickTopY + textYOffset, 0);
+          // For all other positions, use calculated coordinates
+          textMesh.position.set(topperX, stickTopY + textYOffset, topperZ);
         }
         
         topperGroup.add(textMesh);
@@ -801,10 +911,10 @@ const addDecorations = (layerMesh, layerConfig) => {
             
             if (topper.position === 'bottom') {
               // For bottom position, position image below the text
-              imageMesh.position.set(0, bottomY - stickHeight - textYOffset - (0.3 * sizeMultiplier) - 0.1, 0);
+              imageMesh.position.set(topperX, bottomY - stickHeight - textYOffset - (0.3 * sizeMultiplier) - 0.1, topperZ);
             } else {
-              // For top/center position
-              imageMesh.position.set(0, stickTopY + textYOffset - (0.3 * sizeMultiplier), 0);
+              // For all other positions, use calculated coordinates
+              imageMesh.position.set(topperX, stickTopY + textYOffset - (0.3 * sizeMultiplier), topperZ);
             }
             
             topperGroup.add(imageMesh);
@@ -828,10 +938,10 @@ const addDecorations = (layerMesh, layerConfig) => {
         
         if (topper.position === 'bottom') {
           // For bottom position, position image below the cake
-          imageMesh.position.set(0, bottomY - stickHeight - imageYOffset - halfImageHeight - 0.1, 0);
+          imageMesh.position.set(topperX, bottomY - stickHeight - imageYOffset - halfImageHeight - 0.1, topperZ);
         } else {
-          // For top/center position with improved positioning
-          imageMesh.position.set(0, stickTopY + imageYOffset + halfImageHeight, 0);
+          // For all other positions, use calculated coordinates
+          imageMesh.position.set(topperX, stickTopY + imageYOffset + halfImageHeight, topperZ);
         }
         
         topperGroup.add(imageMesh);
@@ -849,10 +959,10 @@ const addDecorations = (layerMesh, layerConfig) => {
     
     if (topper.position === 'bottom') {
       // For bottom position, position connector at the bottom of the stick
-      connector.position.set(0, bottomY - stickHeight - 0.02 - 0.1, 0);
+      connector.position.set(topperX, bottomY - stickHeight - 0.02 - 0.1, topperZ);
     } else {
-      // For top/center position with improved positioning
-      connector.position.set(0, stickTopY + 0.02, 0);
+      // For all other positions, use calculated coordinates
+      connector.position.set(topperX, stickTopY + 0.02, topperZ);
     }
     
     topperGroup.add(connector);
@@ -1284,6 +1394,227 @@ const addDecorations = (layerMesh, layerConfig) => {
     if (bottomIcingGroup.children.length > 0) layerMesh.add(bottomIcingGroup);
   }
 
+  // Add Surface Icing (on top of the layer)
+  if (layerConfig.surfaceIcing && layerConfig.surfaceIcing.enabled) {
+    console.log('Rendering Surface Icing for layer:', layerConfig.id, layerConfig.surfaceIcing);
+    const surfaceIcing = layerConfig.surfaceIcing;
+    const surfaceIcingMaterial = new THREE.MeshStandardMaterial({
+      color: surfaceIcing.color || "#FFFFFF",
+      roughness: 0.8, // Slightly rough to look like icing
+      metalness: 0.1,
+    });
+    // Create a thin cylinder for the surface icing
+    // Radius should be slightly smaller than layerRadius to avoid z-fighting if edge icing is also present
+    const surfaceIcingRadiusOffset =
+      edgeIcing && edgeIcing.enabled && edgeIcing.thickness > 0.01 ? 0.005 : 0;
+    const surfaceIcingRadius = Math.max(0.01, layerRadius - surfaceIcingRadiusOffset);
+
+    const surfaceIcingThickness = surfaceIcing.thickness || 0.02;
+    const surfaceIcingGeometry = new THREE.CylinderGeometry(
+      surfaceIcingRadius,
+      surfaceIcingRadius,
+      surfaceIcingThickness,
+      64 // Smooth enough for a surface
+    );
+    const surfaceIcingMesh = new THREE.Mesh(surfaceIcingGeometry, surfaceIcingMaterial);
+    // Position it on top of the current layer, ensuring it sits just above the main layer mesh
+    surfaceIcingMesh.position.y = topY + surfaceIcingThickness / 2;
+    surfaceIcingMesh.name = "surfaceIcingMesh";
+    layerMesh.add(surfaceIcingMesh);
+  }
+
+  // Add Patterned Top Icing (on top of the layer)
+  if (layerConfig.patternedTopIcing && layerConfig.patternedTopIcing.enabled) {
+    console.log('Rendering Patterned Top Icing for layer:', layerConfig.id, layerConfig.patternedTopIcing);
+    const patternedTopIcing = layerConfig.patternedTopIcing;
+    const patternedTopIcingGroup = new THREE.Group();
+    patternedTopIcingGroup.name = "patternedTopIcingGroup";
+    const icingMaterial = new THREE.MeshStandardMaterial({
+      color: patternedTopIcing.color || "#FFC0CB",
+      roughness: 0.6,
+      metalness: 0.1,
+    });
+
+    const style = patternedTopIcing.style || "smooth";
+    const thickness = patternedTopIcing.thickness || 0.04;
+    const position = patternedTopIcing.position || "inner";
+
+    let baseRadius;
+    const offsetFromEdge = 0.1; // To prevent direct overlap with edge icing or cake edge
+
+    if (position === "inner") {
+      baseRadius = layerRadius * 0.3;
+    } else if (position === "mid") {
+      baseRadius = layerRadius * 0.6;
+    } else {
+      // outer or default
+      baseRadius = Math.max(0.05, layerRadius * 0.9 - offsetFromEdge); // Ensure a minimum radius
+    }
+    baseRadius = Math.max(0.05, baseRadius - thickness); // Adjust for icing thickness itself, ensure min radius
+
+    const icingYPosition = topY + thickness * 0.5; // Position on top surface
+
+    // Adapted from edgeIcing logic
+    if (style === "smooth") {
+      if (baseRadius > 0 && thickness > 0) {
+        const geo = new THREE.TorusGeometry(baseRadius, thickness, 24, 64);
+        const mesh = new THREE.Mesh(geo, icingMaterial);
+        mesh.position.y = icingYPosition;
+        mesh.rotation.x = Math.PI / 2;
+        patternedTopIcingGroup.add(mesh);
+      }
+    } else if (style === "curl") {
+      const curlR = thickness * 0.8;
+      if (baseRadius > curlR) {
+        const circumference = Math.PI * 2 * baseRadius;
+        const numTotal = Math.max(1, Math.floor(circumference / (curlR * 1.5)));
+        for (let i = 0; i < numTotal; i++) {
+          const ang = (i / numTotal) * Math.PI * 2;
+          const sizeVariation = 0.9 + Math.random() * 0.2;
+          const curlSize = curlR * sizeVariation;
+          const curlGeo = new THREE.SphereGeometry(curlSize, 10, 6);
+          const curl = new THREE.Mesh(curlGeo, icingMaterial);
+          const curlX = Math.cos(ang) * baseRadius;
+          const curlZ = Math.sin(ang) * baseRadius;
+          curl.position.set(curlX, icingYPosition, curlZ);
+          const tailGeo = new THREE.ConeGeometry(curlSize * 0.6, curlSize * 1.2, 6);
+          const tail = new THREE.Mesh(tailGeo, icingMaterial);
+          tail.position.y = -curlSize * 0.6;
+          tail.rotation.x = Math.PI / 2;
+          curl.add(tail);
+          patternedTopIcingGroup.add(curl);
+        }
+      }
+    } else if (style === "shell") {
+      const shellR = thickness * 0.8;
+      if (baseRadius > shellR) {
+        const circumference = Math.PI * 2 * baseRadius;
+        const numTotal = Math.max(1, Math.floor(circumference / (shellR * 1.5)));
+        for (let i = 0; i < numTotal; i++) {
+          const ang = (i / numTotal) * Math.PI * 2;
+          const shellGroup = new THREE.Group();
+          const mainShell = new THREE.Mesh(
+            new THREE.SphereGeometry(shellR, 10, 6),
+            icingMaterial
+          );
+          const tail = new THREE.Mesh(
+            new THREE.ConeGeometry(shellR * 0.6, shellR * 1.5, 6),
+            icingMaterial
+          );
+          tail.position.y = -shellR * 0.75;
+          tail.rotation.x = Math.PI / 2;
+          shellGroup.add(mainShell);
+          shellGroup.add(tail);
+          shellGroup.position.set(
+            Math.cos(ang) * baseRadius,
+            icingYPosition,
+            Math.sin(ang) * baseRadius
+          );
+          shellGroup.rotation.y = -ang + Math.PI / 2;
+          patternedTopIcingGroup.add(shellGroup);
+        }
+      }
+    } else if (style === "rosette") {
+      const rosetteR = thickness * 0.9;
+      if (baseRadius > rosetteR) {
+        const circumference = Math.PI * 2 * baseRadius;
+        const numTotal = Math.max(1, Math.floor(circumference / (rosetteR * 2.2)));
+        for (let i = 0; i < numTotal; i++) {
+          const ang = (i / numTotal) * Math.PI * 2;
+          const rosetteGroup = new THREE.Group();
+          const numPetals = 5;
+          for (let j = 0; j < numPetals; j++) {
+            const petalAng = (j / numPetals) * Math.PI * 2;
+            const petal = new THREE.Mesh(
+              new THREE.SphereGeometry(rosetteR * 0.6, 8, 6),
+              icingMaterial
+            );
+            petal.position.set(
+              Math.cos(petalAng) * rosetteR * 0.5,
+              Math.sin(petalAng) * rosetteR * 0.5,
+              0
+            );
+            rosetteGroup.add(petal);
+          }
+          const center = new THREE.Mesh(
+            new THREE.SphereGeometry(rosetteR * 0.4, 8, 6),
+            icingMaterial
+          );
+          rosetteGroup.add(center);
+          rosetteGroup.position.set(
+            Math.cos(ang) * baseRadius,
+            icingYPosition,
+            Math.sin(ang) * baseRadius
+          );
+          rosetteGroup.rotation.x = Math.PI / 2;
+          rosetteGroup.rotation.y = -ang;
+          patternedTopIcingGroup.add(rosetteGroup);
+        }
+      }
+    } else if (style === "ruffle") {
+      const ruffleR = thickness * 0.8;
+      if (baseRadius > ruffleR) {
+        const circumference = Math.PI * 2 * baseRadius;
+        const numTotal = Math.max(1, Math.floor(circumference / (ruffleR * 1.8)));
+        for (let i = 0; i < numTotal; i++) {
+          const ang = (i / numTotal) * Math.PI * 2;
+          const ruffleGroup = new THREE.Group();
+          const ruffleMain = new THREE.Mesh(
+            new THREE.SphereGeometry(ruffleR, 10, 6),
+            icingMaterial
+          );
+          const wave = new THREE.Mesh(
+            new THREE.TorusGeometry(ruffleR * 0.8, ruffleR * 0.3, 8, 12, Math.PI),
+            icingMaterial
+          );
+          wave.rotation.x = Math.PI / 2;
+          wave.position.y = -ruffleR * 0.5;
+          ruffleGroup.add(ruffleMain);
+          ruffleGroup.add(wave);
+          ruffleGroup.position.set(
+            Math.cos(ang) * baseRadius,
+            icingYPosition,
+            Math.sin(ang) * baseRadius
+          );
+          ruffleGroup.rotation.x = Math.PI / 2;
+          ruffleGroup.rotation.y = -ang;
+          patternedTopIcingGroup.add(ruffleGroup);
+        }
+      }
+    } else if (style === "zigzag") {
+      const zigzagR = thickness * 0.8;
+      if (baseRadius > zigzagR) {
+        const circumference = Math.PI * 2 * baseRadius;
+        const numTotal = Math.max(1, Math.floor(circumference / (zigzagR * 1.5)));
+        for (let i = 0; i < numTotal; i++) {
+          const ang = (i / numTotal) * Math.PI * 2;
+          const zigzagGroup = new THREE.Group();
+          const point = new THREE.Mesh(
+            new THREE.ConeGeometry(zigzagR * 0.8, zigzagR * 1.5, 4),
+            icingMaterial
+          );
+          point.rotation.z = Math.PI / 2;
+          const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(zigzagR * 0.6, zigzagR * 0.6, zigzagR * 0.3, 4),
+            icingMaterial
+          );
+          base.position.y = -zigzagR * 0.9;
+          zigzagGroup.add(point);
+          zigzagGroup.add(base);
+          zigzagGroup.position.set(
+            Math.cos(ang) * baseRadius,
+            icingYPosition,
+            Math.sin(ang) * baseRadius
+          );
+          zigzagGroup.rotation.y = -ang;
+          patternedTopIcingGroup.add(zigzagGroup);
+        }
+      }
+    }
+
+    if (patternedTopIcingGroup.children.length > 0) layerMesh.add(patternedTopIcingGroup);
+  }
+
   const overallToppingGroup = new THREE.Group();
   overallToppingGroup.name = "toppingGroup";
   toppings.forEach(topping => {
@@ -1348,7 +1679,41 @@ const addDecorations = (layerMesh, layerConfig) => {
         overallToppingGroup.add(cherry);
       }
     } else if (topping.type === 'strawberries') {
-      const strawberryCount = Math.max(1, Math.floor(layerRadius * 2.5));
+      // Ring-based strawberry positioning (improved from copy file)
+      const strawberryPosition = layerConfig.strawberryPosition || "inner";
+      const availableRadius = layerRadius - (edgeIcing.enabled ? edgeIcing.thickness : 0) - 0.15;
+
+      // Define positioning based on user selection
+      let rings = [];
+      const minRadius = 0.2;
+      const strawberrySpacing = 0.5; // Spacing between strawberries
+
+      if (strawberryPosition === "inner") {
+        const innerRadius = minRadius + (availableRadius - minRadius) * 0.3;
+        const circumference = 2 * Math.PI * innerRadius;
+        const strawberryCount = Math.max(2, Math.floor(circumference / strawberrySpacing));
+        rings = [{ radius: innerRadius, count: strawberryCount }];
+      } else if (strawberryPosition === "mid") {
+        const midRadius = minRadius + (availableRadius - minRadius) * 0.6;
+        const circumference = 2 * Math.PI * midRadius;
+        const strawberryCount = Math.max(3, Math.floor(circumference / strawberrySpacing));
+        rings = [{ radius: midRadius, count: strawberryCount }];
+      } else if (strawberryPosition === "outer") {
+        const outerRadius = availableRadius * 0.9;
+        const circumference = 2 * Math.PI * outerRadius;
+        const strawberryCount = Math.max(4, Math.floor(circumference / strawberrySpacing));
+        rings = [{ radius: outerRadius, count: strawberryCount }];
+      } else if (strawberryPosition === "all") {
+        const numberOfRings = 3; // Create 3 rings for full coverage
+        for (let ring = 0; ring < numberOfRings; ring++) {
+          const ringRadius = minRadius + (ring / (numberOfRings - 1)) * (availableRadius - minRadius);
+          const circumference = 2 * Math.PI * ringRadius;
+          const strawberriesInRing = Math.max(2, Math.floor(circumference / strawberrySpacing));
+          rings.push({ radius: ringRadius, count: strawberriesInRing });
+        }
+      }
+
+      // Material definitions
       const strawberryMaterial = new THREE.MeshStandardMaterial({
         color: 0xFF3B3B,
         roughness: 0.7,
@@ -1363,64 +1728,54 @@ const addDecorations = (layerMesh, layerConfig) => {
         roughness: 0.6
       });
 
-      for (let i = 0; i < strawberryCount; i++) {
-        const strawberry = new THREE.Group();
+      // Create strawberries for each ring
+      rings.forEach((ring, ringIndex) => {
+        for (let i = 0; i < ring.count; i++) {
+          const strawberry = new THREE.Group();
 
-        // Create strawberry body (cone-like shape)
-        const bodyGeo = new THREE.ConeGeometry(0.12, 0.25, 16);
-        const body = new THREE.Mesh(bodyGeo, strawberryMaterial);
-        body.rotation.x = Math.PI; // Flip upside down
-        strawberry.add(body);
+          // Create strawberry body with size variation
+          const sizeVariation = 0.8 + Math.random() * 0.4;
+          const bodyGeo = new THREE.ConeGeometry(0.12 * sizeVariation, 0.25 * sizeVariation, 16);
+          const body = new THREE.Mesh(bodyGeo, strawberryMaterial);
+          body.rotation.x = Math.PI; // Flip upside down
+          strawberry.add(body);
 
-        // Add green top/leaves
-        const leafGeo = new THREE.CylinderGeometry(0.1, 0.05, 0.05, 12);
-        const leaves = new THREE.Mesh(leafGeo, stemMaterial);
-        leaves.position.y = 0.125;
-        strawberry.add(leaves);
+          // Add green top/leaves
+          const leafGeo = new THREE.CylinderGeometry(0.1 * sizeVariation, 0.05 * sizeVariation, 0.05 * sizeVariation, 12);
+          const leaves = new THREE.Mesh(leafGeo, stemMaterial);
+          leaves.position.y = 0.125 * sizeVariation;
+          strawberry.add(leaves);
 
-        // Add seeds (small yellow dots)
-        for (let s = 0; s < 10; s++) {
-          const seedGeo = new THREE.SphereGeometry(0.01, 4, 4);
-          const seed = new THREE.Mesh(seedGeo, seedMaterial);
-          const seedAngle = Math.random() * Math.PI * 2;
-          const seedHeight = Math.random() * 0.2 - 0.1;
-          const seedRadius = 0.1 * Math.random() + 0.05;
-          seed.position.set(
-            Math.cos(seedAngle) * seedRadius,
-            seedHeight,
-            Math.sin(seedAngle) * seedRadius
+          // Add seeds (small yellow dots)
+          for (let s = 0; s < 8; s++) {
+            const seedGeo = new THREE.SphereGeometry(0.01 * sizeVariation, 4, 4);
+            const seed = new THREE.Mesh(seedGeo, seedMaterial);
+            const seedAngle = Math.random() * Math.PI * 2;
+            const seedHeight = Math.random() * 0.2 * sizeVariation - 0.1 * sizeVariation;
+            const seedRadius = 0.1 * Math.random() * sizeVariation + 0.05 * sizeVariation;
+            seed.position.set(
+              Math.cos(seedAngle) * seedRadius,
+              seedHeight,
+              Math.sin(seedAngle) * seedRadius
+            );
+            strawberry.add(seed);
+          }
+
+          // Position strawberry evenly around the ring
+          const baseAngle = (i / ring.count) * Math.PI * 2;
+          strawberry.position.set(
+            Math.cos(baseAngle) * ring.radius,
+            topY + 0.125 * sizeVariation,
+            Math.sin(baseAngle) * ring.radius
           );
-          strawberry.add(seed);
+
+          // Add natural rotation
+          strawberry.rotation.y = Math.random() * Math.PI * 2;
+          strawberry.rotation.z = (Math.random() - 0.5) * 0.3;
+
+          overallToppingGroup.add(strawberry);
         }
-
-        // Position the strawberry on the cake
-        const strawberryRadius = 0.15;
-        const availableRadius = layerRadius - (edgeIcing.enabled ? edgeIcing.thickness : 0) - strawberryRadius;
-
-        // Use golden ratio for better distribution
-        const goldenRatio = 0.618033988749895;
-        const angle = (i * goldenRatio * Math.PI * 2) % (Math.PI * 2);
-
-        // Place strawberries mostly around the edge
-        let dist = availableRadius * (0.7 + Math.random() * 0.3);
-
-        // If it's the first strawberry and there are only a few, place one in the center
-        if (i === 0 && strawberryCount <= 5) {
-          dist = availableRadius * 0.3 * Math.random();
-        }
-
-        strawberry.position.set(
-          Math.cos(angle) * dist,
-          topY + 0.1,
-          Math.sin(angle) * dist
-        );
-
-        // Random rotation for variety
-        strawberry.rotation.y = Math.random() * Math.PI * 2;
-        strawberry.rotation.z = (Math.random() - 0.5) * 0.3;
-
-        overallToppingGroup.add(strawberry);
-      }
+      });
     } else if (topping.type === 'blueberries') {
       const blueberryCount = Math.max(2, Math.floor(layerRadius * 5)); // More blueberries as they're smaller
       const blueberryMaterial = new THREE.MeshStandardMaterial({
@@ -1480,6 +1835,350 @@ const addDecorations = (layerMesh, layerConfig) => {
 
         overallToppingGroup.add(blueberry);
       }
+    } else if (topping.type === 'candle') {
+      const candlePosition = layerConfig.candlePosition || "center"; // Default to center
+      let candleCount = 1;
+      const candleHeight = 0.8; // bodyHeight
+      const candleRadius = 0.04; // bodyRadius
+
+      const candleMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.3,
+        metalness: 0.1,
+      });
+      const flameMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff6600,
+        roughness: 0.1,
+        metalness: 0.0,
+        emissive: 0xff3300,
+        emissiveIntensity: 0.2,
+      });
+      const wickMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        roughness: 0.8,
+      });
+
+      // Determine candle count and base positions based on candlePosition
+      let positions = [];
+      const effectiveRadius = layerRadius - candleRadius - 0.1; // Radius for placing candles, leaving some margin
+
+      switch (candlePosition) {
+        case "center":
+          positions.push({ x: 0, z: 0 });
+          break;
+        case "front":
+          positions.push({ x: 0, z: effectiveRadius * 0.7 });
+          break;
+        case "back":
+          positions.push({ x: 0, z: -effectiveRadius * 0.7 });
+          break;
+        case "left":
+          positions.push({ x: -effectiveRadius * 0.7, z: 0 });
+          break;
+        case "right":
+          positions.push({ x: effectiveRadius * 0.7, z: 0 });
+          break;
+        case "front-left":
+          positions.push({ x: -effectiveRadius * 0.5, z: effectiveRadius * 0.5 });
+          break;
+        case "front-right":
+          positions.push({ x: effectiveRadius * 0.5, z: effectiveRadius * 0.5 });
+          break;
+        case "back-left":
+          positions.push({ x: -effectiveRadius * 0.5, z: -effectiveRadius * 0.5 });
+          break;
+        case "back-right":
+          positions.push({ x: effectiveRadius * 0.5, z: -effectiveRadius * 0.5 });
+          break;
+        case "around_edge":
+          candleCount = Math.max(3, Math.floor(layerRadius * 4)); // Adjust count based on size
+          for (let i = 0; i < candleCount; i++) {
+            const angle = (i / candleCount) * Math.PI * 2;
+            positions.push({
+              x: Math.cos(angle) * effectiveRadius,
+              z: Math.sin(angle) * effectiveRadius,
+            });
+          }
+          break;
+        case "top": // alias for 'around_edge' or a denser distributed pattern
+          positions.push({ x: 0, z: 0 });
+          break;
+      }
+
+      candleCount = positions.length;
+
+      for (let i = 0; i < candleCount; i++) {
+        const candle = new THREE.Group();
+
+        const bodyGeo = new THREE.CylinderGeometry(
+          candleRadius,
+          candleRadius,
+          candleHeight,
+          16
+        );
+        const body = new THREE.Mesh(bodyGeo, candleMaterial);
+        candle.add(body);
+
+        const wickGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.1, 8);
+        const wick = new THREE.Mesh(wickGeo, wickMaterial);
+        wick.position.y = candleHeight / 2 + 0.05;
+        candle.add(wick);
+
+        const flameGeo = new THREE.SphereGeometry(0.03, 8, 8);
+        const flame = new THREE.Mesh(flameGeo, flameMaterial);
+        flame.position.y = candleHeight / 2 + 0.12;
+        candle.add(flame);
+
+        const pos = positions[i];
+        candle.position.set(pos.x, topY + candleHeight / 2, pos.z);
+
+        overallToppingGroup.add(candle);
+      }
+    } else if (topping.type === 'crush_oreo') {
+      const oreoCount = Math.max(20, Math.floor(layerRadius * 15)); // Many small oreo pieces
+      const oreoMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2f1b1b,
+        roughness: 0.8,
+        metalness: 0.1,
+      });
+      const creamMaterial = new THREE.MeshStandardMaterial({
+        color: 0xfffff0,
+        roughness: 0.5,
+        metalness: 0.1,
+      });
+
+      for (let i = 0; i < oreoCount; i++) {
+        const oreoGroup = new THREE.Group();
+
+        // Create irregular oreo crumb shapes - increased size
+        const crumbSize = 0.04 + Math.random() * 0.06; // Increased from 0.02-0.05 to 0.04-0.10
+        const crumbGeo = new THREE.BoxGeometry(
+          crumbSize,
+          crumbSize * 0.3,
+          crumbSize * 0.8
+        );
+        const crumb = new THREE.Mesh(crumbGeo, oreoMaterial);
+        oreoGroup.add(crumb);
+
+        // Sometimes add cream pieces
+        if (Math.random() < 0.3) {
+          const creamGeo = new THREE.SphereGeometry(crumbSize * 0.5, 6, 6);
+          const cream = new THREE.Mesh(creamGeo, creamMaterial);
+          cream.position.y = crumbSize * 0.2;
+          oreoGroup.add(cream);
+        }
+
+        // Position the oreo crumb on the cake
+        const availableRadius =
+          layerRadius - (edgeIcing.enabled ? edgeIcing.thickness : 0);
+
+        // Random distribution across cake top
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * availableRadius;
+
+        oreoGroup.position.set(
+          Math.cos(angle) * dist,
+          topY + crumbSize,
+          Math.sin(angle) * dist
+        );
+
+        // Random rotation for natural look
+        oreoGroup.rotation.x = Math.random() * Math.PI;
+        oreoGroup.rotation.y = Math.random() * Math.PI;
+        oreoGroup.rotation.z = Math.random() * Math.PI;
+
+        overallToppingGroup.add(oreoGroup);
+      }
+    } else if (topping.type === 'christmas_balls') {
+      const ballCount = Math.max(3, Math.floor(layerRadius * 2)); // Fewer balls as they're decorative
+      const ballColors = [0xff0000, 0x00ff00, 0xffd700, 0x0000ff, 0xff69b4]; // Red, Green, Gold, Blue, Pink
+
+      for (let i = 0; i < ballCount; i++) {
+        const ball = new THREE.Group();
+
+        // Create main ball - increased size
+        const ballRadius = 0.15 + Math.random() * 0.08; // Increased from 0.08-0.12 to 0.15-0.23
+        const ballGeo = new THREE.SphereGeometry(ballRadius, 16, 16);
+        const ballColor = ballColors[Math.floor(Math.random() * ballColors.length)];
+        const ballMaterial = new THREE.MeshStandardMaterial({
+          color: ballColor,
+          roughness: 0.1,
+          metalness: 0.8,
+        });
+        const ballMesh = new THREE.Mesh(ballGeo, ballMaterial);
+        ball.add(ballMesh);
+
+        // Add cap (small cylinder at top)
+        const capGeo = new THREE.CylinderGeometry(
+          ballRadius * 0.3,
+          ballRadius * 0.3,
+          ballRadius * 0.3,
+          12
+        );
+        const capMaterial = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          roughness: 0.2,
+          metalness: 0.9,
+        });
+        const cap = new THREE.Mesh(capGeo, capMaterial);
+        cap.position.y = ballRadius + ballRadius * 0.15;
+        ball.add(cap);
+
+        // Position the ball on the cake
+        const availableRadius =
+          layerRadius - (edgeIcing.enabled ? edgeIcing.thickness : 0) - ballRadius;
+
+        // Distribute balls around the cake
+        const angle = (i / ballCount) * Math.PI * 2 + Math.random() * 0.5;
+        const dist = availableRadius * (0.3 + Math.random() * 0.5);
+
+        ball.position.set(
+          Math.cos(angle) * dist,
+          topY + ballRadius,
+          Math.sin(angle) * dist
+        );
+
+        // Random rotation for variety
+        ball.rotation.y = Math.random() * Math.PI * 2;
+        ball.rotation.z = (Math.random() - 0.5) * 0.3;
+
+        overallToppingGroup.add(ball);
+      }
+    } else if (topping.type === 'flowers') {
+      // Get the selected flower position and rose color from layer config
+      const flowerPosition = layerConfig.flowerPosition || "inner";
+      const selectedRoseColor = layerConfig.roseColor || "red";
+      const availableRadius =
+        layerRadius - (edgeIcing.enabled ? edgeIcing.thickness : 0) - 0.25;
+
+      // Define rose colors
+      const roseColors = {
+        red: 0xdc143c,
+        pink: 0xff69b4,
+        white: 0xfffff0,
+        yellow: 0xffd700,
+        purple: 0x9370db,
+        orange: 0xff8c00,
+      };
+
+      const roseColor = roseColors[selectedRoseColor] || roseColors.red;
+
+      // Define positioning based on user selection
+      let rings = [];
+      const minRadius = 0.25;
+      const flowerSpacing = 0.75;
+
+      if (flowerPosition === "inner") {
+        const innerRadius = minRadius + (availableRadius - minRadius) * 0.3;
+        const circumference = 2 * Math.PI * innerRadius;
+        const flowerCount = Math.max(4, Math.floor(circumference / flowerSpacing));
+        rings = [{ radius: innerRadius, count: flowerCount }];
+      } else if (flowerPosition === "mid") {
+        const midRadius = minRadius + (availableRadius - minRadius) * 0.6;
+        const circumference = 2 * Math.PI * midRadius;
+        const flowerCount = Math.max(5, Math.floor(circumference / flowerSpacing));
+        rings = [{ radius: midRadius, count: flowerCount }];
+      } else if (flowerPosition === "outer") {
+        const outerRadius = availableRadius * 0.9;
+        const circumference = 2 * Math.PI * outerRadius;
+        const flowerCount = Math.max(6, Math.floor(circumference / flowerSpacing));
+        rings = [{ radius: outerRadius, count: flowerCount }];
+      } else if (flowerPosition === "all") {
+        const numberOfRings = 3;
+        for (let ring = 0; ring < numberOfRings; ring++) {
+          const ringRadius =
+            minRadius + (ring / (numberOfRings - 1)) * (availableRadius - minRadius);
+          const circumference = 2 * Math.PI * ringRadius;
+          const flowersInRing = Math.max(3, Math.floor(circumference / flowerSpacing));
+          rings.push({ radius: ringRadius, count: flowersInRing });
+        }
+      }
+
+      // Generate flowers for each ring
+      rings.forEach((ring) => {
+        for (let i = 0; i < ring.count; i++) {
+          const rose = new THREE.Group();
+
+          // Create 3D Rose with layered petals
+          const roseMaterial = new THREE.MeshStandardMaterial({
+            color: roseColor,
+            roughness: 0.3,
+            metalness: 0.1,
+          });
+
+          // Create rose center (small sphere)
+          const centerGeo = new THREE.SphereGeometry(0.05, 8, 8);
+          const center = new THREE.Mesh(centerGeo, roseMaterial);
+          rose.add(center);
+
+          // Create multiple layers of petals for 3D rose effect
+          const petalLayers = 4;
+
+          for (let layer = 0; layer < petalLayers; layer++) {
+            const layerRadius = 0.06 + layer * 0.035;
+            const petalsInLayer = 5 + layer;
+            const layerHeight = layer * 0.03;
+
+            for (let p = 0; p < petalsInLayer; p++) {
+              const petalAngle = (p / petalsInLayer) * Math.PI * 2 + layer * 0.3;
+
+              const petalGeo = new THREE.SphereGeometry(0.035 + layer * 0.015, 6, 4);
+              const petal = new THREE.Mesh(petalGeo, roseMaterial);
+
+              const petalX = Math.cos(petalAngle) * layerRadius;
+              const petalZ = Math.sin(petalAngle) * layerRadius;
+              const petalY = layerHeight;
+
+              petal.position.set(petalX, petalY, petalZ);
+              petal.scale.set(1.5 + layer * 0.4, 0.4, 1.0 + layer * 0.3);
+              petal.rotation.x = -Math.PI / 6 + (layer * Math.PI) / 12;
+              petal.rotation.y = petalAngle;
+              petal.rotation.z = (Math.random() - 0.5) * 0.3;
+
+              rose.add(petal);
+            }
+          }
+
+          // Add green leaves
+          const leafMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2e8b57,
+            roughness: 0.7,
+            metalness: 0.1,
+          });
+
+          const leafCount = 2 + Math.floor(Math.random() * 2);
+          for (let l = 0; l < leafCount; l++) {
+            const leafAngle = (l / leafCount) * Math.PI * 2;
+            const leafGeo = new THREE.SphereGeometry(0.08, 6, 4);
+            const leaf = new THREE.Mesh(leafGeo, leafMaterial);
+
+            const leafRadius = 0.2;
+            leaf.position.set(
+              Math.cos(leafAngle) * leafRadius,
+              -0.1 - Math.random() * 0.05,
+              Math.sin(leafAngle) * leafRadius
+            );
+
+            leaf.scale.set(1.5, 0.2, 0.8);
+            leaf.rotation.x = Math.PI / 3 + (Math.random() - 0.5) * 0.2;
+            leaf.rotation.y = leafAngle + (Math.random() - 0.5) * 0.3;
+            leaf.rotation.z = (Math.random() - 0.5) * 0.4;
+
+            rose.add(leaf);
+          }
+
+          // Position the rose in the current ring
+          const angle = (i / ring.count) * Math.PI * 2;
+          rose.position.set(
+            Math.cos(angle) * ring.radius,
+            topY + 0.12,
+            Math.sin(angle) * ring.radius
+          );
+
+          rose.rotation.y = Math.random() * Math.PI * 2;
+          overallToppingGroup.add(rose);
+        }
+      });
     }
   });
   if (overallToppingGroup.children.length > 0) layerMesh.add(overallToppingGroup);
@@ -1628,13 +2327,7 @@ const renderCake = () => {
         topLayerRadius = layerConfig.radius;
         topLayerHeight = layerConfig.height;
       }
-      if (layerConfig.id === selectedLayerId) {
-        if (!originalLayerMaterials.has(selectedLayerId)) {
-          originalLayerMaterials.set(selectedLayerId, layerMesh.material);
-        }
-        layerMesh.material = layerMesh.material.clone();
-        layerMesh.material.emissive.setHex(0x555555);
-      }
+      // Layer highlighting functionality removed
     });
   }
   // Add greeting text after layers
@@ -1719,6 +2412,8 @@ const updateLayerProperty = (layerId, propertyPath, value) => {
         parsedValue = value;
       }
       currentObject[propertyKey] = parsedValue;
+      
+
     }
 
     let isAnyIcingAnimating = (layer.edgeIcing && layer.edgeIcing.enabled && layer.edgeIcing.isAnimating) ||
@@ -1931,6 +2626,8 @@ const applyLoadedCakeData = (loadedData) => {
           ...defaultStructure,
           ...loadedLayer
         };
+        
+        // Properly merge all icing types
         mergedLayer.edgeIcing = {
           ...(defaultStructure.edgeIcing || {}),
           ...(loadedLayer.edgeIcing || {})
@@ -1943,25 +2640,72 @@ const applyLoadedCakeData = (loadedData) => {
           ...(defaultStructure.bottomIcing || {}),
           ...(loadedLayer.bottomIcing || {})
         };
+        mergedLayer.surfaceIcing = {
+          ...(defaultStructure.surfaceIcing || {}),
+          ...(loadedLayer.surfaceIcing || {})
+        };
+        mergedLayer.patternedTopIcing = {
+          ...(defaultStructure.patternedTopIcing || {}),
+          ...(loadedLayer.patternedTopIcing || {})
+        };
+        
+        // Merge topper configuration
+        mergedLayer.topper = {
+          ...(defaultStructure.topper || {}),
+          ...(loadedLayer.topper || {})
+        };
+        
+        console.log(`Layer ${loadedLayer.id} topper config:`, JSON.stringify(mergedLayer.topper, null, 2));
+        
+        // Ensure toppings array is properly handled
         mergedLayer.toppings = loadedLayer.toppings || [];
-        ['edgeIcing', 'middleBandIcing', 'bottomIcing'].forEach(icingType => {
+        
+        // Ensure all positioning properties are preserved
+        mergedLayer.flowerPosition = loadedLayer.flowerPosition || defaultStructure.flowerPosition;
+        mergedLayer.roseColor = loadedLayer.roseColor || defaultStructure.roseColor;
+        mergedLayer.strawberryPosition = loadedLayer.strawberryPosition || defaultStructure.strawberryPosition;
+        mergedLayer.candlePosition = loadedLayer.candlePosition || defaultStructure.candlePosition;
+        
+        // Ensure animation properties for all icing types
+        ['edgeIcing', 'middleBandIcing', 'bottomIcing', 'surfaceIcing', 'patternedTopIcing'].forEach(icingType => {
           if (mergedLayer[icingType]) {
             if (!mergedLayer[icingType].hasOwnProperty('isAnimating')) {
-              mergedLayer[icingType].isAnimating = defaultStructure[icingType].isAnimating;
+              mergedLayer[icingType].isAnimating = defaultStructure[icingType]?.isAnimating || false;
             }
             if (!mergedLayer[icingType].hasOwnProperty('animationProgress')) {
-              mergedLayer[icingType].animationProgress = defaultStructure[icingType].animationProgress;
+              mergedLayer[icingType].animationProgress = defaultStructure[icingType]?.animationProgress || 0;
             }
             if (!mergedLayer[icingType].hasOwnProperty('animationSpeed')) {
-              mergedLayer[icingType].animationSpeed = defaultStructure[icingType].animationSpeed;
+              mergedLayer[icingType].animationSpeed = defaultStructure[icingType]?.animationSpeed || 0.5;
             }
           }
         });
+        
         return mergedLayer;
       });
 
       layerIdCounter = loadedData.layerIdCounter || cakeLayers.length;
-      console.log("Successfully processed cake layers:", cakeLayers.length);
+      
+      // Load greeting configuration if present
+      if (loadedData.greetingConfig) {
+        Object.assign(greetingConfig, loadedData.greetingConfig);
+      }
+      
+      // Load size and flavor selections if present
+      if (loadedData.selectedSize) {
+        selectedSize.value = loadedData.selectedSize;
+      }
+      
+      if (loadedData.selectedFlavor) {
+        selectedFlavor.value = loadedData.selectedFlavor;
+      }
+      
+      if (loadedData.selectedLayers) {
+        selectedLayers.value = loadedData.selectedLayers;
+      }
+      
+              console.log("Successfully processed cake layers:", cakeLayers.length);
+        console.log("Loaded cake data structure:", JSON.stringify(cakeLayers, null, 2));
     } catch (err) {
       console.error("Error processing cake layers:", err);
       cakeLayers = [];
@@ -1985,24 +2729,24 @@ const applyLoadedCakeData = (loadedData) => {
 };
 
 // Update loadCakeConfiguration to use the new applyLoadedCakeData function
-const loadCakeConfiguration = (event) => {
-  const file = event.target.files[0];
-  if (!file) {
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const loadedData = JSON.parse(e.target.result);
-      applyLoadedCakeData(loadedData);
-    } catch (error) {
-      console.error("Error loading cake configuration:", error);
-      alert("Error loading cake configuration: " + error.message);
-    }
-  };
-  reader.readAsText(file);
-  event.target.value = null;
-};
+// const loadCakeConfiguration = (event) => {
+//   const file = event.target.files[0];
+//   if (!file) {
+//     return;
+//   }
+//   const reader = new FileReader();
+//   reader.onload = (e) => {
+//     try {
+//       const loadedData = JSON.parse(e.target.result);
+//       applyLoadedCakeData(loadedData);
+//     } catch (error) {
+//       console.error("Error loading cake configuration:", error);
+//       alert("Error loading cake configuration: " + error.message);
+//     }
+//   };
+//   reader.readAsText(file);
+//   event.target.value = null;
+// };
 
 const resetCakeDesign = () => {
   showResetConfirmModal.value = true;
@@ -2106,50 +2850,79 @@ const generateCakeFromSelections = () => {
   // Get the selected size object
   const selectedSizeObj = selectedSize.value;
 
-  // Calculate base dimensions based on size
-  const baseRadius = selectedSizeObj.diameter / 2;
-  const totalHeightInches = selectedSizeObj.height;
+  // Handle multi-tier cakes
+  if (Array.isArray(selectedSizeObj.diameter)) {
+    // Multi-tier cake
+    selectedSizeObj.diameter.forEach((tierData, index) => {
+      layerIdCounter++;
+      const newLayerId = `layer_${layerIdCounter}`;
+      const newLayer = {
+        id: newLayerId,
+        ...JSON.parse(JSON.stringify(defaultLayerSettings))
+      };
 
-  // Calculate layer height
-  let layerHeightInches = totalHeightInches / selectedLayers.value;
-  const minLayerHeight = 1;
-  if (layerHeightInches < minLayerHeight) layerHeightInches = minLayerHeight;
-  const layerHeight = layerHeightInches * 0.5;
+      // Set radius and height based on tier data
+      newLayer.radius = tierData.diameter / 2;
+      newLayer.height = tierData.height * 0.5; // Convert to Three.js units
 
-  // Generate layers based on selection
-  for (let i = 0; i < selectedLayers.value; i++) {
-    layerIdCounter++;
-    const newLayerId = `layer_${layerIdCounter}`;
-    const newLayer = {
-      id: newLayerId,
-      ...JSON.parse(JSON.stringify(defaultLayerSettings))
-    };
+      // Use the selected flavor color
+      newLayer.color = selectedFlavor.value.color;
 
-    // All layers have the same radius (diameter)
-    newLayer.radius = baseRadius;
-    // Each layer gets equal height
-    newLayer.height = layerHeight;
+      cakeLayers.push(newLayer);
+    });
+  } else {
+    // Single tier cake with multiple layers
+    const baseRadius = selectedSizeObj.diameter / 2;
+    const totalHeightInches = selectedSizeObj.height;
 
-    // Use the selected flavor color
-    newLayer.color = selectedFlavor.value.color;
+    // Calculate layer height
+    let layerHeightInches = totalHeightInches / selectedLayers.value;
+    const minLayerHeight = 1;
+    if (layerHeightInches < minLayerHeight) layerHeightInches = minLayerHeight;
+    const layerHeight = layerHeightInches * 0.5;
 
-    cakeLayers.push(newLayer);
+    // Generate layers based on selection
+    for (let i = 0; i < selectedLayers.value; i++) {
+      layerIdCounter++;
+      const newLayerId = `layer_${layerIdCounter}`;
+      const newLayer = {
+        id: newLayerId,
+        ...JSON.parse(JSON.stringify(defaultLayerSettings))
+      };
+
+      // All layers have the same radius (diameter)
+      newLayer.radius = baseRadius;
+      // Each layer gets equal height
+      newLayer.height = layerHeight;
+
+      // Use the selected flavor color
+      newLayer.color = selectedFlavor.value.color;
+
+      cakeLayers.push(newLayer);
+    }
   }
 
   // Update cake stand size based on selected size
+  const maxDiameter = Array.isArray(selectedSizeObj.diameter) 
+    ? Math.max(...selectedSizeObj.diameter.map(d => d.diameter))
+    : selectedSizeObj.diameter;
+
   if (cakeStand) {
     scene.remove(cakeStand);
-    cakeStand = createCakeStand(selectedSizeObj.diameter);
+    cakeStand = createCakeStand(maxDiameter);
     cakeStand.position.y = 0;
     scene.add(cakeStand);
   }
 
   // Adjust camera position based on cake size
-  const cameraDistance = Math.max(selectedSizeObj.diameter, selectedSizeObj.height) * 2.5;
+  const totalHeight = Array.isArray(selectedSizeObj.diameter)
+    ? selectedSizeObj.diameter.reduce((sum, tier) => sum + tier.height, 0) * 0.5
+    : selectedLayers.value * (selectedSizeObj.height / selectedLayers.value) * 0.5;
+    
+  const cameraDistance = Math.max(maxDiameter, totalHeight) * 2.5;
   
   // Update camera to look at center of cake instead of bottom
-  const cakeHeight = selectedLayers.value * layerHeight;
-  const cakeCenterY = cakeHeight / 2 + cakeStand.userData.totalHeight;
+  const cakeCenterY = totalHeight / 2 + cakeStand.userData.totalHeight;
   
   camera.position.set(cameraDistance, cakeCenterY, cameraDistance);
   camera.lookAt(0, cakeCenterY, 0);
@@ -2333,9 +3106,17 @@ const addTopperControlsUI = (layerConfig, container) => {
         <div class="mt-2">
           <label for="topper_tab_position_${layerConfig.id}">Position:</label>
           <select id="topper_tab_position_${layerConfig.id}">
-            <option value="center" ${layerConfig.topper.position === 'center' ? 'selected' : ''}>Center</option>
-            <option value="top" ${layerConfig.topper.position === 'top' ? 'selected' : ''}>Top</option>
-            <option value="bottom" ${layerConfig.topper.position === 'bottom' ? 'selected' : ''}>Bottom</option>
+                            <option value="center" ${layerConfig.topper.position === 'center' ? 'selected' : ''}>Center</option>
+                <option value="top" ${layerConfig.topper.position === 'top' ? 'selected' : ''}>Top</option>
+                <option value="bottom" ${layerConfig.topper.position === 'bottom' ? 'selected' : ''}>Bottom</option>
+                <option value="front" ${layerConfig.topper.position === 'front' ? 'selected' : ''}>Front</option>
+                <option value="back" ${layerConfig.topper.position === 'back' ? 'selected' : ''}>Back</option>
+                <option value="left" ${layerConfig.topper.position === 'left' ? 'selected' : ''}>Left</option>
+                <option value="right" ${layerConfig.topper.position === 'right' ? 'selected' : ''}>Right</option>
+                <option value="front-left" ${layerConfig.topper.position === 'front-left' ? 'selected' : ''}>Front Left</option>
+                <option value="front-right" ${layerConfig.topper.position === 'front-right' ? 'selected' : ''}>Front Right</option>
+                <option value="back-left" ${layerConfig.topper.position === 'back-left' ? 'selected' : ''}>Back Left</option>
+                <option value="back-right" ${layerConfig.topper.position === 'back-right' ? 'selected' : ''}>Back Right</option>
           </select>
         </div>
         
@@ -2421,6 +3202,8 @@ const addIcingControlsUI = (layerConfig, container) => {
   const edgeIcingSubControlsId = `icing_tab_edge_controls_${layerConfig.id}`;
   const middleIcingSubControlsId = `icing_tab_middle_controls_${layerConfig.id}`;
   const bottomIcingSubControlsId = `icing_tab_bottom_controls_${layerConfig.id}`;
+  const surfaceIcingSubControlsId = `icing_tab_surface_controls_${layerConfig.id}`;
+  const patternedTopIcingSubControlsId = `icing_tab_patterned_controls_${layerConfig.id}`;
 
   icingControlsDiv.innerHTML = `
     <p class="layer-header">Layer ${cakeLayers.findIndex(l => l.id === layerConfig.id) + 1} Icing</p>
@@ -2497,6 +3280,59 @@ const addIcingControlsUI = (layerConfig, container) => {
         </div>
       </div>
     </div>
+
+    <div class="icing-section">
+      <label class="checkbox-label">
+        <input type="checkbox" id="icing_tab_surface_enabled_${layerConfig.id}" ${layerConfig.surfaceIcing?.enabled ? 'checked' : ''}>
+        Enable Surface Icing
+      </label>
+      <div id="${surfaceIcingSubControlsId}" class="sub-controls mt-2 ${layerConfig.surfaceIcing?.enabled ? '' : 'hidden'}">
+        <div class="mt-2">
+          <label for="icing_tab_surface_color_${layerConfig.id}">Surface Color:</label>
+          <input type="color" id="icing_tab_surface_color_${layerConfig.id}" value="${layerConfig.surfaceIcing?.color || '#FFFFFF'}">
+        </div>
+        <div class="mt-2">
+          <label for="icing_tab_surface_thickness_${layerConfig.id}">Surface Thickness (${(layerConfig.surfaceIcing?.thickness || 0.02).toFixed(2)}):</label>
+          <input type="range" id="icing_tab_surface_thickness_${layerConfig.id}" min="0.01" max="0.1" step="0.01" value="${layerConfig.surfaceIcing?.thickness || 0.02}">
+        </div>
+      </div>
+    </div>
+
+    <div class="icing-section">
+      <label class="checkbox-label">
+        <input type="checkbox" id="icing_tab_patterned_enabled_${layerConfig.id}" ${layerConfig.patternedTopIcing?.enabled ? 'checked' : ''}>
+        Enable Patterned Top Icing
+      </label>
+      <div id="${patternedTopIcingSubControlsId}" class="sub-controls mt-2 ${layerConfig.patternedTopIcing?.enabled ? '' : 'hidden'}">
+        <div class="mt-1">
+          <label for="icing_tab_patterned_style_${layerConfig.id}">Pattern Style:</label>
+          <select id="icing_tab_patterned_style_${layerConfig.id}">
+            <option value="smooth" ${(layerConfig.patternedTopIcing?.style || 'smooth') === 'smooth' ? 'selected' : ''}>Smooth Ring</option>
+            <option value="curl" ${layerConfig.patternedTopIcing?.style === 'curl' ? 'selected' : ''}>Curl Pattern</option>
+            <option value="shell" ${layerConfig.patternedTopIcing?.style === 'shell' ? 'selected' : ''}>Shell Pattern</option>
+            <option value="rosette" ${layerConfig.patternedTopIcing?.style === 'rosette' ? 'selected' : ''}>Rosette Pattern</option>
+            <option value="ruffle" ${layerConfig.patternedTopIcing?.style === 'ruffle' ? 'selected' : ''}>Ruffle Pattern</option>
+            <option value="zigzag" ${layerConfig.patternedTopIcing?.style === 'zigzag' ? 'selected' : ''}>Zigzag Pattern</option>
+          </select>
+        </div>
+        <div class="mt-2">
+          <label for="icing_tab_patterned_color_${layerConfig.id}">Pattern Color:</label>
+          <input type="color" id="icing_tab_patterned_color_${layerConfig.id}" value="${layerConfig.patternedTopIcing?.color || '#FFC0CB'}">
+        </div>
+        <div class="mt-2">
+          <label for="icing_tab_patterned_thickness_${layerConfig.id}">Pattern Thickness (${(layerConfig.patternedTopIcing?.thickness || 0.04).toFixed(2)}):</label>
+          <input type="range" id="icing_tab_patterned_thickness_${layerConfig.id}" min="0.01" max="0.3" step="0.01" value="${layerConfig.patternedTopIcing?.thickness || 0.04}">
+        </div>
+        <div class="mt-2">
+          <label for="icing_tab_patterned_position_${layerConfig.id}">Pattern Position:</label>
+          <select id="icing_tab_patterned_position_${layerConfig.id}">
+            <option value="inner" ${(layerConfig.patternedTopIcing?.position || 'inner') === 'inner' ? 'selected' : ''}>Inner</option>
+            <option value="mid" ${layerConfig.patternedTopIcing?.position === 'mid' ? 'selected' : ''}>Middle</option>
+            <option value="outer" ${layerConfig.patternedTopIcing?.position === 'outer' ? 'selected' : ''}>Outer</option>
+          </select>
+        </div>
+      </div>
+    </div>
   `;
 
   container.appendChild(icingControlsDiv);
@@ -2557,6 +3393,50 @@ const addIcingControlsUI = (layerConfig, container) => {
   document.getElementById(`icing_tab_bottom_thickness_${layerConfig.id}`).addEventListener('input', (e) => {
     updateLayerProperty(layerConfig.id, 'bottomIcing.thickness', parseFloat(e.target.value));
   });
+
+  // Surface Icing event listeners
+  const surfaceIcingEnabledCheckbox = document.getElementById(`icing_tab_surface_enabled_${layerConfig.id}`);
+  const surfaceIcingSubControlsDiv = document.getElementById(surfaceIcingSubControlsId);
+
+  surfaceIcingEnabledCheckbox.addEventListener('change', (e) => {
+    console.log('Surface Icing enabled changed:', e.target.checked);
+    updateLayerProperty(layerConfig.id, 'surfaceIcing.enabled', e.target.checked);
+    surfaceIcingSubControlsDiv.classList.toggle('hidden', !e.target.checked);
+  });
+
+  document.getElementById(`icing_tab_surface_color_${layerConfig.id}`).addEventListener('input', (e) => {
+    updateLayerProperty(layerConfig.id, 'surfaceIcing.color', e.target.value);
+  });
+
+  document.getElementById(`icing_tab_surface_thickness_${layerConfig.id}`).addEventListener('input', (e) => {
+    updateLayerProperty(layerConfig.id, 'surfaceIcing.thickness', parseFloat(e.target.value));
+  });
+
+  // Patterned Top Icing event listeners
+  const patternedTopIcingEnabledCheckbox = document.getElementById(`icing_tab_patterned_enabled_${layerConfig.id}`);
+  const patternedTopIcingSubControlsDiv = document.getElementById(patternedTopIcingSubControlsId);
+
+  patternedTopIcingEnabledCheckbox.addEventListener('change', (e) => {
+    console.log('Patterned Top Icing enabled changed:', e.target.checked);
+    updateLayerProperty(layerConfig.id, 'patternedTopIcing.enabled', e.target.checked);
+    patternedTopIcingSubControlsDiv.classList.toggle('hidden', !e.target.checked);
+  });
+
+  document.getElementById(`icing_tab_patterned_style_${layerConfig.id}`).addEventListener('change', (e) => {
+    updateLayerProperty(layerConfig.id, 'patternedTopIcing.style', e.target.value);
+  });
+
+  document.getElementById(`icing_tab_patterned_color_${layerConfig.id}`).addEventListener('input', (e) => {
+    updateLayerProperty(layerConfig.id, 'patternedTopIcing.color', e.target.value);
+  });
+
+  document.getElementById(`icing_tab_patterned_thickness_${layerConfig.id}`).addEventListener('input', (e) => {
+    updateLayerProperty(layerConfig.id, 'patternedTopIcing.thickness', parseFloat(e.target.value));
+  });
+
+  document.getElementById(`icing_tab_patterned_position_${layerConfig.id}`).addEventListener('change', (e) => {
+    updateLayerProperty(layerConfig.id, 'patternedTopIcing.position', e.target.value);
+  });
 };
 
 const addToppingsControlsUI = (layerConfig, container) => {
@@ -2602,6 +3482,31 @@ const addToppingsControlsUI = (layerConfig, container) => {
         </label>
         <div class="sub-controls mt-2 ${hasStrawberries ? '' : 'hidden'}" id="strawberries_controls_${layerConfig.id}">
           <p class="topping-description">Fresh strawberries arranged around the top of your cake</p>
+          <div class="mt-3">
+            <label class="form-label">Strawberry Position:</label>
+            <div class="radio-group mt-2">
+              <label class="radio-option">
+                <input type="radio" name="strawberry_position_${layerConfig.id}" value="inner" ${(layerConfig.strawberryPosition || 'inner') === 'inner' ? 'checked' : ''}>
+                <span class="radio-label">Inner</span>
+                <small class="radio-description">Close to center</small>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="strawberry_position_${layerConfig.id}" value="mid" ${layerConfig.strawberryPosition === 'mid' ? 'checked' : ''}>
+                <span class="radio-label">Mid</span>
+                <small class="radio-description">Middle area</small>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="strawberry_position_${layerConfig.id}" value="outer" ${layerConfig.strawberryPosition === 'outer' ? 'checked' : ''}>
+                <span class="radio-label">Outer</span>
+                <small class="radio-description">Near edge</small>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="strawberry_position_${layerConfig.id}" value="all" ${layerConfig.strawberryPosition === 'all' ? 'checked' : ''}>
+                <span class="radio-label">All</span>
+                <small class="radio-description">Full coverage</small>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -2646,6 +3551,14 @@ const addToppingsControlsUI = (layerConfig, container) => {
   strawberriesCheckbox.addEventListener('change', (e) => {
     updateLayerProperty(layerConfig.id, 'toppings.strawberries', e.target.checked);
     strawberriesControls.classList.toggle('hidden', !e.target.checked);
+  });
+
+  // Add event listeners for strawberry position radio buttons
+  const strawberryPositionRadios = document.querySelectorAll(`input[name="strawberry_position_${layerConfig.id}"]`);
+  strawberryPositionRadios.forEach((radio) => {
+    radio.addEventListener('change', (e) => {
+      updateLayerProperty(layerConfig.id, 'strawberryPosition', e.target.value);
+    });
   });
 
   const blueberriesCheckbox = document.getElementById(`toppings_tab_blueberries_${layerConfig.id}`);
@@ -4406,5 +5319,64 @@ ion-toolbar {
   .close-button span {
     display: none;
   }
+}
+
+/* Radio Button Styles for Topping Positions */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f9f9f9;
+}
+
+.radio-option:hover {
+  background: #f0f0f0;
+  border-color: #ccc;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  accent-color: #7A5C1E;
+}
+
+.radio-option input[type="radio"]:checked {
+  outline: 2px solid #7A5C1E;
+  outline-offset: 1px;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  background: #f8f5f0;
+  border-color: #7A5C1E;
+  box-shadow: 0 0 0 1px #7A5C1E;
+}
+
+.radio-label {
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+}
+
+.radio-description {
+  font-size: 0.85em;
+  color: #666;
+  font-style: italic;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  display: block;
 }
 </style>

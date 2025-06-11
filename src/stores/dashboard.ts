@@ -15,19 +15,18 @@ interface OrderItem {
 }
 
 interface Order {
-  orderId: string
-  createdAt: number
+  id: string
+  createdAt: string
   updatedAt: number
+  customerAddress: string
+  customerContact: string
   customerName: string
-  customerEmail: string
-  userId: string
-  hasRegularItems: boolean
-  hasCustomItems: boolean
   items: OrderItem[]
+  paymentMethod: string
+  paymentStatus: string
   status: 'accepted' | 'declined' | 'pending'
-  totalAmount: number
-  needsPricing: boolean
-  pricingStatus: string
+  total: number
+  userId: string
 }
 
 export const useDashboardStore = defineStore('dashboard', () => {
@@ -61,8 +60,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
         console.log('Accepted orders:', acceptedOrdersArray)
         
         totalRevenue.value = acceptedOrdersArray.reduce((sum, order) => {
-          console.log('Order amount:', order.totalAmount)
-          return sum + (order.totalAmount || 0)
+          console.log('Order amount:', order.total)
+          return sum + (order.total || 0)
         }, 0)
         console.log('Total revenue:', totalRevenue.value)
         

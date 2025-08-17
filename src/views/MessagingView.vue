@@ -169,7 +169,7 @@
               <div v-for="message in messages" :key="message.id"
                 :class="['flex', message.senderId === currentUserId ? 'justify-end' : 'justify-start']">
                 <div :class="['max-w-[85%] sm:max-w-[75%] rounded-lg p-2', 
-                          message.senderId === currentUserId ? 'bg-gray-200 text-white' : 'bg-gray-100 text-gray-900']">
+                          message.senderId === currentUserId ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-900']">
                   
                   <!-- Text Message -->
                   <p v-if="message.content && !message.imageUrl" class="text-base break-words">{{ message.content }}</p>

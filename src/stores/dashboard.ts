@@ -82,8 +82,14 @@ export const useDashboardStore = defineStore('dashboard', () => {
       onValue(usersRef, (snapshot) => {
         const users = snapshot.val() || {}
         console.log('Users data:', users)
-        totalCustomers.value = Object.keys(users).length
-        console.log('Total customers:', totalCustomers.value)
+        
+        // Filter out admin accounts (users with name "PSALM Cake Admin")
+        const customerUsers = Object.values(users).filter((user: any) => 
+          user.name !== "PSALM Cake Admin"
+        )
+        
+        totalCustomers.value = customerUsers.length
+        console.log('Total customers (excluding admin):', totalCustomers.value)
       })
     } catch (err) {
       error.value = 'Failed to fetch dashboard stats'

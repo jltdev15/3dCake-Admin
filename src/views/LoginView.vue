@@ -88,11 +88,11 @@
             </button>
 
             <!-- Forgot password link -->
-            <div class="text-center">
+            <!-- <div class="text-center">
               <a href="#" class="text-[#58091F] hover:text-[#58091F]/80 font-medium transition-colors duration-300">
                 Forgot Password?
               </a>
-            </div>
+            </div> -->
           </form>
         </div>
       </div>

@@ -163,7 +163,7 @@
 
           <!-- Logout Button -->
           <div class="p-4 border-t border-gray-200 mt-4">
-            <button @click="logout"
+            <button @click="showLogoutConfirmation"
               class="w-full flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -268,7 +268,7 @@
 
         <!-- Logout Button -->
         <div class="p-6 border-t border-gray-200">
-          <button @click="logout"
+          <button @click="showLogoutConfirmation"
             class="w-full flex items-center justify-center px-5 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-lg">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 mr-3" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
@@ -358,6 +358,38 @@
       </div>
     </main>
   </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div v-if="showLogoutModal" class="fixed inset-0 z-50 flex items-center justify-center">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-gray-500/50 bg-opacity-50" @click="cancelLogout"></div>
+    
+    <!-- Modal -->
+    <div class="relative bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+      <div class="text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Confirm Logout</h3>
+        <p class="text-sm text-gray-500 mb-6">Are you sure you want to logout? You will need to login again to access the admin panel.</p>
+        
+        <div class="flex space-x-3">
+          <button @click="cancelLogout" 
+                  class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+            Cancel
+          </button>
+          <button @click="confirmLogout" 
+                  class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -374,6 +406,7 @@ const authStore = useAuthStore()
 const messagingStore = useMessagingStore()
 const sidebarOpen = ref(false)
 const notificationDropdownOpen = ref(false)
+const showLogoutModal = ref(false)
 
 // Notification state
 const notifications = ref<any[]>([])
@@ -542,6 +575,22 @@ const logout = async () => {
   } catch (err) {
     console.error('Logout error:', err)
   }
+}
+
+// Show logout confirmation modal
+const showLogoutConfirmation = () => {
+  showLogoutModal.value = true
+}
+
+// Confirm logout
+const confirmLogout = async () => {
+  showLogoutModal.value = false
+  await logout()
+}
+
+// Cancel logout
+const cancelLogout = () => {
+  showLogoutModal.value = false
 }
 
 // This is needed for TypeScript to recognize the component

@@ -52,7 +52,7 @@
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">{{ order.customerName }}</div>
-                    <div class="text-sm text-gray-500">{{ order.customerEmail }}</div>
+                    <div class="text-sm text-gray-500">{{ order.customerContact }}</div>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">{{ formatDate(order.createdAt) }}</div>
@@ -223,7 +223,7 @@ const filteredOrders = computed(() => {
     const query = searchQuery.value.toLowerCase();
     return order.orderId.toLowerCase().includes(query) ||
       order.customerName.toLowerCase().includes(query) ||
-      order.customerEmail.toLowerCase().includes(query) ||
+      order.customerContact.toLowerCase().includes(query) ||
       getOrderType(order).toLowerCase().includes(query);
   })
 })
@@ -343,11 +343,14 @@ const updateOrderStatus = async (orderId: string, newStatus: Order['status']) =>
 
 // Function to get order type label
 const getOrderType = (order: Order) => {
-  if (order.hasCustomItems && order.hasRegularItems) {
+  const hasCustomItems = order.items.some(item => item.isCustomCake)
+  const hasRegularItems = order.items.some(item => !item.isCustomCake)
+  
+  if (hasCustomItems && hasRegularItems) {
     return 'Mixed'
-  } else if (order.hasCustomItems) {
+  } else if (hasCustomItems) {
     return 'Custom'
-  } else if (order.hasRegularItems) {
+  } else if (hasRegularItems) {
     return 'Regular'
   } else {
     return 'Unknown'

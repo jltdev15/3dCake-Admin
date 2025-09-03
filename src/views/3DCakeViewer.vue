@@ -110,8 +110,7 @@ import { onMounted, onUnmounted, ref, computed, reactive, watch } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
-import * as TextGeometryModule from 'three/examples/jsm/geometries/TextGeometry.js';
-const TextGeometry = TextGeometryModule.TextGeometry;
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { getDatabase, ref as dbRef, get, set } from '../firebase/config';
 import { child } from 'firebase/database';
 import { useRoute, useRouter } from 'vue-router';
@@ -2257,7 +2256,7 @@ const addGreetingTextToCake = (currentHeightOffset, topLayerRadius, topLayerHeig
       const circle = new THREE.EllipseCurve(0, 0, radius, radius, 0, Math.PI * 2, false, 0);
       textPath.add(circle);
       // Apply the path to the text
-      textMesh.geometry = new THREE.TextGeometry(greetingConfig.text, {
+      textMesh.geometry = new TextGeometry(greetingConfig.text, {
         font: loadedFont,
         size: greetingConfig.size,
         height: greetingConfig.depth,

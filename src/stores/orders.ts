@@ -48,7 +48,7 @@ export interface OrderItem {
 export interface Order {
   id: string
   orderId: string
-  createdAt: string
+  createdAt: number
   updatedAt: number
   customerAddress: string
   customerContact: string
@@ -86,7 +86,10 @@ export const useOrderStore = defineStore('orders', () => {
   })
 
   const getRegularOrders = computed(() => {
-    return orders.value.filter(order => order.hasRegularItems && !order.hasCustomItems)
+    return orders.value.filter(order => 
+      order.items.some(item => !item.isCustomCake) && 
+      !order.items.some(item => item.isCustomCake)
+    )
   })
 
   // Actions
@@ -122,7 +125,7 @@ export const useOrderStore = defineStore('orders', () => {
       }
       
       // Sort orders by createdAt in descending order (newest first)
-      ordersArray.sort((a, b) => b.createdAt - a.createdAt)
+      ordersArray.sort((a, b) => Number(b.createdAt) - Number(a.createdAt))
       
       orders.value = ordersArray
     } catch (e) {
@@ -143,7 +146,7 @@ export const useOrderStore = defineStore('orders', () => {
       }
 
       const timestamp = Date.now()
-      const newOrder = {
+      const newOrder: Order = {
         ...order,
         orderId: `ord${timestamp.toString().substring(timestamp.toString().length - 6).padStart(6, '0')}`,
         createdAt: timestamp,

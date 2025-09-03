@@ -179,7 +179,7 @@ const orderId = computed(() => route.params.id as string)
 const order = ref<Order | null>(null)
 
 // Function to format date
-const formatDate = (timestamp: string) => {
+const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',

@@ -298,7 +298,7 @@ const pricingInProgress = ref(false)
 const successMessage = ref<string | null>(null)
 
 // Function to format date
-const formatDate = (timestamp: string) => {
+const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',

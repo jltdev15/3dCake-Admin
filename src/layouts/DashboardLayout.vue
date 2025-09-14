@@ -179,8 +179,8 @@
 
     <!-- Desktop Sidebar -->
     <aside
-      class="hidden md:flex md:flex-col md:w-80 lg:w-96 bg-gradient-to-r from-[#D3D58E] to-[#FFF7D0] border-r border-gray-200">
-      <div class="h-full flex flex-col">
+      class="hidden md:flex md:flex-col md:w-80 lg:w-96 bg-gradient-to-r from-[#D3D58E] to-[#FFF7D0] border-r border-gray-200 fixed left-0 top-0 h-screen z-40">
+      <div class="h-full flex flex-col overflow-hidden">
         <!-- Logo section -->
         <div class="p-6 sm:p-8 border-b border-gray-200">
           <div class="flex items-center">
@@ -221,20 +221,6 @@
                 Orders
               </router-link>
             </li>
-            <!-- <li>
-              <router-link to="/settings"
-                class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
-                :class="{ 'bg-white/70 text-gray-900': $route.path === '/settings' }">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 sm:h-7 sm:w-7 mr-3 sm:mr-4" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Settings
-              </router-link>
-            </li> -->
             <li>
               <router-link to="/users"
                 class="flex items-center px-4 sm:px-5 py-3 sm:py-4 text-gray-700 rounded-lg hover:bg-white/50 transition-colors duration-200 text-lg"
@@ -282,7 +268,7 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto">
+    <main class="flex-1 overflow-y-auto md:ml-80 lg:ml-96">
       <!-- Header -->
       <header class="bg-gradient-to-r from-[#D3D58E] to-[#FFF7D0] shadow-sm">
         <div class="px-3 sm:px-4 md:px-6 py-3 sm:py-4 flex justify-between items-center">

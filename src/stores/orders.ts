@@ -45,6 +45,14 @@ export interface OrderItem {
   }
 }
 
+export interface PaymentDetails {
+  amount: string
+  captureTime: string
+  currency: string
+  status: string
+  transactionId: string
+}
+
 export interface Order {
   id: string
   orderId: string
@@ -52,10 +60,12 @@ export interface Order {
   updatedAt: number
   customerAddress: string
   customerContact: string
+  customerEmail?: string
   customerName: string
   items: OrderItem[]
   paymentMethod: string
   paymentStatus: string
+  paymentDetails?: PaymentDetails
   status: 'pending' | 'accepted' | 'declined'
   total: number
   userId: string

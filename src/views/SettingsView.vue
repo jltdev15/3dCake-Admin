@@ -8,7 +8,7 @@
       </div>
 
       <!-- Profile Section -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-6">
         <div class="p-6">
           <div class="mb-6">
             <h2 class="text-lg font-medium text-gray-900">Profile Information</h2>
@@ -69,12 +69,17 @@
           </form>
         </div>
       </div>
+
+      <!-- Email Test Section -->
+      <EmailTest />
     </div>
   </DashboardLayout>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+// @ts-ignore
+import EmailTest from '../components/EmailTest.vue'
 
 // Profile form data
 const profile = ref({

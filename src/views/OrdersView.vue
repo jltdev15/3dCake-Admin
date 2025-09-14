@@ -81,7 +81,7 @@
                       </router-link>
                       <button 
                         v-if="order.status === 'pending'"
-                        @click="updateOrderStatus(order.orderId, 'accepted')"
+                        @click="confirmAcceptOrder(order)"
                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -91,7 +91,7 @@
                       </button>
                       <button 
                         v-if="order.status === 'pending'"
-                        @click="updateOrderStatus(order.orderId, 'declined')"
+                        @click="confirmDeclineOrder(order)"
                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -191,6 +191,18 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :is-visible="showConfirmationModal"
+      :type="confirmationType"
+      :title="confirmationTitle"
+      :message="confirmationMessage"
+      :order-details="orderDetails"
+      :confirm-text="confirmationButtonText"
+      @confirm="handleConfirmAction"
+      @cancel="handleCancelAction"
+    />
   </DashboardLayout>
 </template>
 
@@ -201,11 +213,23 @@ import { useOrderStore } from '../stores/orders'
 import type { Order } from '../stores/orders'
 import { ref as dbRef, set } from 'firebase/database'
 import { database } from '../firebase/config'
+import { sendOrderNotification, EmailService, type OrderEmailData } from '../services/emailService'
+// @ts-ignore
+import ConfirmationModal from '../components/ConfirmationModal.vue'
 
 const orderStore = useOrderStore()
 const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = 10
+
+// Modal state
+const showConfirmationModal = ref(false)
+const confirmationType = ref<'accept' | 'decline'>('accept')
+const confirmationTitle = ref('')
+const confirmationMessage = ref('')
+const confirmationButtonText = ref('Confirm')
+const orderDetails = ref<{orderId: string, customerName: string, total: number} | undefined>(undefined)
+const pendingOrderId = ref<string | null>(null)
 
 // Fetch orders when component mounts
 onMounted(async () => {
@@ -307,6 +331,53 @@ const getPricingStatusClass = (status: string) => {
   }
 }
 
+// Confirmation functions
+const confirmAcceptOrder = (order: Order) => {
+  confirmationType.value = 'accept'
+  confirmationTitle.value = 'Accept Order'
+  confirmationMessage.value = 'Are you sure you want to accept this order?'
+  confirmationButtonText.value = 'Accept Order'
+  orderDetails.value = {
+    orderId: order.orderId,
+    customerName: order.customerName,
+    total: order.total
+  }
+  pendingOrderId.value = order.orderId
+  showConfirmationModal.value = true
+}
+
+const confirmDeclineOrder = (order: Order) => {
+  confirmationType.value = 'decline'
+  confirmationTitle.value = 'Decline Order'
+  confirmationMessage.value = 'Are you sure you want to decline this order?'
+  confirmationButtonText.value = 'Decline Order'
+  orderDetails.value = {
+    orderId: order.orderId,
+    customerName: order.customerName,
+    total: order.total
+  }
+  pendingOrderId.value = order.orderId
+  showConfirmationModal.value = true
+}
+
+// Modal handlers
+const handleConfirmAction = () => {
+  showConfirmationModal.value = false
+  if (pendingOrderId.value) {
+    if (confirmationType.value === 'accept') {
+      updateOrderStatus(pendingOrderId.value, 'accepted')
+    } else {
+      updateOrderStatus(pendingOrderId.value, 'declined')
+    }
+  }
+  pendingOrderId.value = null
+}
+
+const handleCancelAction = () => {
+  showConfirmationModal.value = false
+  pendingOrderId.value = null
+}
+
 // Function to update order status
 const updateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
   try {
@@ -319,8 +390,8 @@ const updateOrderStatus = async (orderId: string, newStatus: Order['status']) =>
       throw new Error('Order not found')
     }
 
+    // Create Firebase notification
     try {
-      // Create notification entry in Firebase
       const notificationRef = dbRef(database, `users/${order.userId}/ordernotification/${orderId}`)
       await set(notificationRef, {
         orderId,
@@ -330,10 +401,55 @@ const updateOrderStatus = async (orderId: string, newStatus: Order['status']) =>
         read: false
       })
     } catch (notificationError: any) {
-      // Log the notification error but don't fail the whole operation
       console.warn('Failed to create notification:', notificationError)
-      // You might want to show a toast or notification to the admin
-      // that the order was updated but notification failed
+    }
+
+    // Send email notification
+    try {
+      // Try to get email from multiple sources
+      let customerEmail = order.customerEmail || EmailService.extractEmail(order.customerContact)
+      
+      // If no email found, try to get it from user data
+      if (!customerEmail && order.userId) {
+        console.log('Fetching user email from userId:', order.userId)
+        customerEmail = await EmailService.getUserEmail(order.userId)
+      }
+      
+      if (!customerEmail) {
+        console.warn('No valid email address found for order:', order.orderId)
+        console.log('Customer contact info:', order.customerContact)
+        console.log('User ID:', order.userId)
+        return // Skip email sending if no valid email
+      }
+
+      const emailData: OrderEmailData = {
+        orderId: order.orderId,
+        customerName: order.customerName,
+        customerEmail: customerEmail,
+        status: newStatus as 'accepted' | 'declined',
+        total: order.total,
+        orderDate: new Date(order.createdAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        items: order.items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice || (item.unitPrice * item.quantity)
+        }))
+      }
+
+      const emailSent = await sendOrderNotification(emailData)
+      if (emailSent) {
+        console.log('Email notification sent successfully')
+      } else {
+        console.warn('Failed to send email notification')
+      }
+    } catch (emailError: any) {
+      console.warn('Email notification failed:', emailError)
+      // Don't fail the whole operation if email fails
     }
   } catch (e) {
     console.error('Failed to update order status:', e)

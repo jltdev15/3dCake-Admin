@@ -644,11 +644,15 @@ const createLayerMesh = (radius, height, color, layerId) => {
 };
 
 // Load the font once and reuse it
-let loadedFont = null;
+let loadedFonts = {
+  normal: null,
+  bold: null
+};
+
 const fontLoader = new FontLoader();
 fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.164.1/examples/fonts/helvetiker_regular.typeface.json', (font) => {
-  loadedFont = font;
-  console.log('Font loaded:', loadedFont);
+  loadedFonts.normal = font;
+  console.log('Font loaded:', loadedFonts.normal);
   if (typeof renderCake === 'function') {
     console.log('Triggering renderCake after font load');
     renderCake();
@@ -861,7 +865,7 @@ const addDecorations = (layerMesh, layerConfig) => {
 
     // Only create topper text if font is loaded
     if ((topper.type === 'text' || topper.type === 'text_image')) {
-      if (!loadedFont) {
+      if (!loadedFonts.normal) {
         console.warn('Font not loaded yet, skipping topper text creation');
         return;
       }
@@ -869,7 +873,7 @@ const addDecorations = (layerMesh, layerConfig) => {
         const topperText = topper.text.trim();
         const sizeMultiplier = topper.size || 1;
         const textGeometry = new TextGeometry(topperText, {
-          font: loadedFont,
+          font: loadedFonts.normal,
           size: 0.12 * topper.fontSize * sizeMultiplier,
           height: 0.02 * sizeMultiplier,
           curveSegments: 4,
@@ -2210,7 +2214,7 @@ const addGreetingTextToCake = (currentHeightOffset, topLayerRadius, topLayerHeig
     cakeGroup.remove(existingGreeting);
   }
 
-  if (!greetingConfig.enabled || !greetingConfig.text || !loadedFont) {
+  if (!greetingConfig.enabled || !greetingConfig.text || !loadedFonts.normal) {
     return;
   }
 
@@ -2218,7 +2222,7 @@ const addGreetingTextToCake = (currentHeightOffset, topLayerRadius, topLayerHeig
   greetingGroup.name = "greetingGroup";
 
   const textGeometry = new TextGeometry(greetingConfig.text, {
-    font: loadedFont,
+    font: loadedFonts.normal,
     size: greetingConfig.size,
     height: greetingConfig.depth,
     curveSegments: 12,
@@ -2257,7 +2261,7 @@ const addGreetingTextToCake = (currentHeightOffset, topLayerRadius, topLayerHeig
       textPath.add(circle);
       // Apply the path to the text
       textMesh.geometry = new TextGeometry(greetingConfig.text, {
-        font: loadedFont,
+        font: loadedFonts.normal,
         size: greetingConfig.size,
         height: greetingConfig.depth,
         curveSegments: 12,
@@ -2596,7 +2600,15 @@ const loadCakeDataFromFirebase = async (orderId, designId) => {
         
         if (itemWithDesign && itemWithDesign.customDetails.designData) {
           console.log('Found design data in Firebase:', itemWithDesign.customDetails.designData);
-          applyLoadedCakeData(itemWithDesign.customDetails.designData);
+          
+          // Merge design data with greeting data if it exists
+          const designData = { ...itemWithDesign.customDetails.designData };
+          if (itemWithDesign.customDetails.greeting) {
+            designData.greetingConfig = itemWithDesign.customDetails.greeting;
+            console.log('Found greeting data in Firebase:', itemWithDesign.customDetails.greeting);
+          }
+          
+          applyLoadedCakeData(designData);
         } else {
           throw new Error('Design data not found in this order');
         }

@@ -237,6 +237,21 @@ const defaultLayerSettings = {
     animationProgress: 0,
     animationSpeed: 0.5
   },
+  // Side Icing (full-height shell around the cylinder)
+  sideIcing: {
+    enabled: false,
+    color: '#FFFFFF',
+    thickness: 0.02
+  },
+  // Side Toppings (evenly spaced around side). Multiple types supported
+  sideToppings: {
+    enabled: false,
+    types: [],
+    count: 8,
+    yPosition: 0.5,
+    size: 1,
+    radiusOffset: 0.02
+  },
   // Topper positioning options
   strawberryPosition: 'inner', // inner, mid, outer, all
   candlePosition: 'center', // center, edge, random, etc.
@@ -659,6 +674,16 @@ fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.164.1/examples/fonts/helve
   }
 });
 
+// Disable raycasting for an entire group/mesh subtree
+const disableRaycasting = (group) => {
+  if (!group) return;
+  group.traverse((child) => {
+    if (child.isMesh) {
+      child.raycast = () => {};
+    }
+  });
+};
+
 const addDecorations = (layerMesh, layerConfig) => {
   const {
     radius: layerRadius,
@@ -667,7 +692,9 @@ const addDecorations = (layerMesh, layerConfig) => {
     topper,
     edgeIcing,
     middleBandIcing,
-    bottomIcing
+    bottomIcing,
+    sideIcing,
+    sideToppings
   } = layerConfig;
   const topY = layerHeight / 2;
   const middleY = 0;
@@ -717,6 +744,26 @@ const addDecorations = (layerMesh, layerConfig) => {
       }
     });
     layerMesh.remove(existingTopper);
+  }
+  const existingSideIcing = layerMesh.getObjectByName("sideIcingGroup");
+  if (existingSideIcing) {
+    existingSideIcing.traverse((c) => {
+      if (c.isMesh) {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+      }
+    });
+    layerMesh.remove(existingSideIcing);
+  }
+  const existingSideToppings = layerMesh.getObjectByName("sideToppingsGroup");
+  if (existingSideToppings) {
+    existingSideToppings.traverse((c) => {
+      if (c.isMesh) {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+      }
+    });
+    layerMesh.remove(existingSideToppings);
   }
 
   // Add topper if enabled
@@ -970,6 +1017,7 @@ const addDecorations = (layerMesh, layerConfig) => {
     
     topperGroup.add(connector);
 
+    disableRaycasting(topperGroup);
     layerMesh.add(topperGroup);
   }
 
@@ -1236,7 +1284,10 @@ const addDecorations = (layerMesh, layerConfig) => {
       middleMesh.rotation.x = Math.PI / 2;
       middleIcingGroup.add(middleMesh);
     }
-    if (middleIcingGroup.children.length > 0) layerMesh.add(middleIcingGroup);
+    if (middleIcingGroup.children.length > 0) {
+      disableRaycasting(middleIcingGroup);
+      layerMesh.add(middleIcingGroup);
+    }
   }
 
   if (bottomIcing.enabled) {
@@ -1394,7 +1445,10 @@ const addDecorations = (layerMesh, layerConfig) => {
         bottomIcingGroup.add(zigzagGroup);
       }
     }
-    if (bottomIcingGroup.children.length > 0) layerMesh.add(bottomIcingGroup);
+    if (bottomIcingGroup.children.length > 0) {
+      disableRaycasting(bottomIcingGroup);
+      layerMesh.add(bottomIcingGroup);
+    }
   }
 
   // Add Surface Icing (on top of the layer)
@@ -1423,6 +1477,7 @@ const addDecorations = (layerMesh, layerConfig) => {
     // Position it on top of the current layer, ensuring it sits just above the main layer mesh
     surfaceIcingMesh.position.y = topY + surfaceIcingThickness / 2;
     surfaceIcingMesh.name = "surfaceIcingMesh";
+    surfaceIcingMesh.raycast = () => {};
     layerMesh.add(surfaceIcingMesh);
   }
 
@@ -1615,7 +1670,153 @@ const addDecorations = (layerMesh, layerConfig) => {
       }
     }
 
-    if (patternedTopIcingGroup.children.length > 0) layerMesh.add(patternedTopIcingGroup);
+    if (patternedTopIcingGroup.children.length > 0) {
+      disableRaycasting(patternedTopIcingGroup);
+      layerMesh.add(patternedTopIcingGroup);
+    }
+  }
+
+  // New: Side Icing - full-height cylindrical shell
+  if (sideIcing && sideIcing.enabled) {
+    const sideIcingGroup = new THREE.Group();
+    sideIcingGroup.name = "sideIcingGroup";
+    const sideMaterial = new THREE.MeshStandardMaterial({
+      color: sideIcing.color || '#FFFFFF',
+      roughness: 0.8,
+      metalness: 0.1,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
+      side: THREE.DoubleSide,
+    });
+    const radialThickness = Math.max(0.001, sideIcing.thickness || 0.02);
+    const outerRadius = layerRadius + radialThickness;
+    const sideGeometry = new THREE.CylinderGeometry(outerRadius, outerRadius, layerHeight, 64, 1, true);
+    const sideMesh = new THREE.Mesh(sideGeometry, sideMaterial);
+    sideMesh.position.y = 0;
+    sideMesh.raycast = () => {};
+    sideIcingGroup.add(sideMesh);
+    disableRaycasting(sideIcingGroup);
+    layerMesh.add(sideIcingGroup);
+  }
+
+  // New: Side Toppings - evenly spaced, multiple types
+  if (sideToppings && sideToppings.enabled && Array.isArray(sideToppings.types) && sideToppings.types.length > 0) {
+    const sideGroup = new THREE.Group();
+    sideGroup.name = 'sideToppingsGroup';
+
+    const count = Math.max(1, sideToppings.count || 8);
+    const clampedY = Math.min(1, Math.max(0, sideToppings.yPosition ?? 0.5));
+    const ringY = THREE.MathUtils.lerp(bottomY, topY, clampedY);
+    const radius = layerRadius + Math.max(0, sideToppings.radiusOffset || 0.02);
+    const sizeScale = Math.max(0.1, sideToppings.size || 1);
+
+    const createSideTopping = (type) => {
+      const geoms = {
+        sprinkle: new THREE.BoxGeometry(0.03, 0.15, 0.03),
+        cherryBody: new THREE.SphereGeometry(0.15, 8, 8),
+        cherryStem: new THREE.CylinderGeometry(0.02, 0.02, 0.2, 6),
+        strawberryBody: new THREE.ConeGeometry(0.12, 0.25, 8),
+        strawberryLeaf: new THREE.CylinderGeometry(0.1, 0.05, 0.05, 8),
+        blueberry: new THREE.SphereGeometry(0.08, 8, 8),
+        oreo: new THREE.BoxGeometry(0.06, 0.02, 0.08),
+        ball: new THREE.SphereGeometry(0.12, 12, 12),
+      };
+      const mats = {
+        sprinkle: new THREE.MeshStandardMaterial({ color: 0xff6b6b, roughness: 0.8, metalness: 0.1 }),
+        strawberry: new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.6, metalness: 0.1 }),
+        strawberryLeaf: new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.8, metalness: 0.1 }),
+        cherry: new THREE.MeshStandardMaterial({ color: 0xdc143c, roughness: 0.4, metalness: 0.15 }),
+        cherryStem: new THREE.MeshStandardMaterial({ color: 0x3b2f2f, roughness: 0.9, metalness: 0.05 }),
+        blueberry: new THREE.MeshStandardMaterial({ color: 0x4169e1, roughness: 0.5, metalness: 0.2 }),
+        oreo: new THREE.MeshStandardMaterial({ color: 0x2f1b1b, roughness: 0.8, metalness: 0.1 }),
+        ball: new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.1, metalness: 0.8 }),
+      };
+
+      if (type === 'sprinkles') {
+        const sprinkle = new THREE.Mesh(geoms.sprinkle, mats.sprinkle);
+        sprinkle.material.color.setHSL(Math.random(), 0.8, 0.6);
+        sprinkle.scale.setScalar(sizeScale);
+        return sprinkle;
+      }
+      if (type === 'strawberries') {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(geoms.strawberryBody, mats.strawberry);
+        body.rotation.x = Math.PI;
+        group.add(body);
+        const leaves = new THREE.Mesh(geoms.strawberryLeaf, mats.strawberryLeaf);
+        leaves.position.y = 0.125;
+        group.add(leaves);
+        group.scale.setScalar(sizeScale);
+        return group;
+      }
+      if (type === 'cherries') {
+        const group = new THREE.Group();
+        const body = new THREE.Mesh(geoms.cherryBody, mats.cherry);
+        const stem = new THREE.Mesh(geoms.cherryStem, mats.cherryStem);
+        stem.position.y = 0.25;
+        stem.rotation.z = Math.PI / 6;
+        group.add(body);
+        group.add(stem);
+        group.scale.setScalar(sizeScale);
+        return group;
+      }
+      if (type === 'blueberries') {
+        const mesh = new THREE.Mesh(geoms.blueberry, mats.blueberry);
+        mesh.scale.setScalar(sizeScale);
+        return mesh;
+      }
+      if (type === 'flowers') {
+        const roseMat = new THREE.MeshStandardMaterial({ color: 0xdc143c, roughness: 0.3, metalness: 0.1 });
+        const rose = new THREE.Group();
+        const center = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), roseMat);
+        rose.add(center);
+        for (let layer = 0; layer < 3; layer++) {
+          const layerRadiusLocal = 0.05 + layer * 0.03;
+          const petals = 5 + layer;
+          for (let p = 0; p < petals; p++) {
+            const ang = (p / petals) * Math.PI * 2;
+            const petal = new THREE.Mesh(new THREE.SphereGeometry(0.03 + layer * 0.01, 6, 4), roseMat);
+            petal.position.set(Math.cos(ang) * layerRadiusLocal, layer * 0.02, Math.sin(ang) * layerRadiusLocal);
+            petal.scale.set(1.3 + layer * 0.3, 0.35, 1.0 + layer * 0.25);
+            petal.rotation.x = -Math.PI / 6 + (layer * Math.PI) / 12;
+            petal.rotation.y = ang;
+            rose.add(petal);
+          }
+        }
+        rose.scale.setScalar(sizeScale);
+        return rose;
+      }
+      if (type === 'crush_oreo') {
+        const oreo = new THREE.Mesh(geoms.oreo, mats.oreo);
+        oreo.scale.setScalar(sizeScale);
+        return oreo;
+      }
+      if (type === 'christmas_balls') {
+        const ball = new THREE.Mesh(geoms.ball, mats.ball);
+        const colors = [0xff0000, 0x00ff00, 0xffd700, 0x0000ff, 0xff69b4];
+        ball.material.color.setHex(colors[Math.floor(Math.random() * colors.length)]);
+        ball.scale.setScalar(sizeScale);
+        return ball;
+      }
+      return new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    };
+
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2;
+      const x = Math.cos(ang) * radius;
+      const z = Math.sin(ang) * radius;
+      const typeIndex = i % sideToppings.types.length;
+      const selectedType = sideToppings.types[typeIndex];
+      const mesh = createSideTopping(selectedType);
+      mesh.position.set(x, ringY, z);
+      mesh.rotation.y = -ang;
+      mesh.raycast = () => {};
+      sideGroup.add(mesh);
+    }
+
+    disableRaycasting(sideGroup);
+    layerMesh.add(sideGroup);
   }
 
   const overallToppingGroup = new THREE.Group();
@@ -2241,6 +2442,35 @@ const addGreetingTextToCake = (currentHeightOffset, topLayerRadius, topLayerHeig
 
   const textMesh = new THREE.Mesh(textGeometry, textMaterial);
 
+  // Helper: Bend a flat text geometry around the cake's cylindrical side (around Y-axis)
+  const bendGeometryAroundCylinder = (geometry, radius, clearance = 0.03) => {
+    if (!geometry || !geometry.isBufferGeometry) return;
+    geometry.computeBoundingBox();
+    const bbox = geometry.boundingBox;
+    const textWidth = bbox.max.x - bbox.min.x;
+    // Center the text horizontally so it wraps symmetrically
+    const centerOffsetX = -textWidth / 2;
+    geometry.translate(centerOffsetX, 0, 0);
+
+    const position = geometry.attributes.position;
+    const effectiveRadius = Math.max(0.001, radius + clearance);
+    for (let i = 0; i < position.count; i++) {
+      const x = position.getX(i);
+      const y = position.getY(i);
+      const z = position.getZ(i);
+      const theta = -x / effectiveRadius; // negative so it reads left-to-right from front
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+      const bentX = effectiveRadius * cosT;
+      const bentZ = effectiveRadius * sinT;
+      position.setXYZ(i, bentX, y, bentZ);
+    }
+    position.needsUpdate = true;
+    geometry.computeVertexNormals();
+    geometry.computeBoundingBox();
+    geometry.computeBoundingSphere();
+  };
+
   // Position the text based on layout
   switch (greetingConfig.layout) {
     case 'horizontal-top':
@@ -2270,8 +2500,15 @@ const addGreetingTextToCake = (currentHeightOffset, topLayerRadius, topLayerHeig
       });
       break;
     case 'vertical-side':
-      textMesh.position.set(topLayerRadius + 0.1, currentHeightOffset - topLayerHeight / 2, 0);
-      textMesh.rotation.y = Math.PI / 2;
+      // Bend around cylinder side and place mid-height on the top layer side
+      // Ensure geometry is non-indexed for consistent bending
+      if (textMesh.geometry && textMesh.geometry.index) {
+        textMesh.geometry = textMesh.geometry.toNonIndexed();
+      }
+      bendGeometryAroundCylinder(textMesh.geometry, topLayerRadius, 0.03);
+      // Center vertically on the side (accounting for text height)
+      textMesh.position.set(0, currentHeightOffset - topLayerHeight / 2 + textHeight / 2, 0);
+      textMesh.rotation.set(0, 0, 0);
       break;
   }
 
